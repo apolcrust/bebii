@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1st Motmottt wBebiii🤍</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 85 C 20 65, 5 50, 5 35 C 5 20, 15 10, 25 10 C 35 10, 45 20, 50 30 C 55 20, 65 10, 75 10 C 85 10, 95 20, 95 35 C 95 50, 80 65, 50 85 Z' fill='%23ff1493'/></svg>">
+    <title>Heart Constellation & 3D Celebration</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { 
@@ -128,55 +127,6 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        #globe-zoom-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 2, 8, 0.95);
-            display: none; z-index: 50;
-            flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; transition: opacity 0.4s ease;
-        }
-        #globe-zoom-overlay.active {
-            display: flex;
-            opacity: 1;
-        }
-        #globe-zoom-header {
-            position: absolute; top: 30px; width: 100%; text-align: center;
-            color: #ff9aa2; font-size: 24px; font-weight: 700;
-            letter-spacing: 3px; text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 0, 136, 0.8), 0 0 20px rgba(255, 105, 180, 0.6);
-            user-select: none;
-        }
-        #globe-zoom-close {
-            position: absolute; top: 30px; right: 40px;
-            background: rgba(255, 0, 136, 0.2); border: 1.5px solid rgba(255, 0, 136, 0.6);
-            color: #ff9aa2; font-size: 28px; width: 50px; height: 50px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s ease;
-            user-select: none; font-weight: bold;
-        }
-        #globe-zoom-close:hover {
-            background: rgba(255, 0, 136, 0.4); border-color: #ff9aa2;
-            box-shadow: 0 0 20px rgba(255, 0, 136, 0.6);
-        }
-        #globe-zoom-grid {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;
-            padding: 100px 40px 40px; max-width: 1400px;
-            max-height: calc(100vh - 120px); overflow-y: auto;
-        }
-        .globe-zoom-item {
-            aspect-ratio: 1; border-radius: 12px;
-            border: 2px solid rgba(255, 154, 162, 0.3);
-            overflow: hidden; box-shadow: 0 0 20px rgba(255, 0, 136, 0.2);
-            transition: all 0.3s ease; cursor: pointer;
-        }
-        .globe-zoom-item img {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-        .globe-zoom-item:hover {
-            border-color: rgba(255, 154, 162, 0.8);
-            box-shadow: 0 0 40px rgba(255, 0, 136, 0.5);
-            transform: scale(1.05);
-        }
     </style>
 </head>
 <body>
@@ -207,11 +157,6 @@
     <div id="three-canvas-container"></div>
     <div id="ui-layer">
         <button id="click-btn">Begin Journey</button>
-    </div>
-    <div id="globe-zoom-overlay">
-        <div id="globe-zoom-header">Globe Images</div>
-        <button id="globe-zoom-close">✕</button>
-        <div id="globe-zoom-grid"></div>
     </div>
 
     <script type="importmap">
@@ -551,23 +496,9 @@ class BGHeart {
             let phase = "intro";
             let zoomedPhoto = null;
 
-            // Mosaic globe images (wbebi folder: 15 images)
-            const globeUrls = [
-                './wbebi/1.jpg', './wbebi/2.jpg', './wbebi/3.jpg', './wbebi/4.jpg', './wbebi/5.jpg',
-                './wbebi/6.jpg', './wbebi/7.jpg', './wbebi/8.jpg', './wbebi/9.jpg', './wbebi/10.jpg',
-                './wbebi/11.jpg', './wbebi/12.jpg', './wbebi/13.jpg', './wbebi/14.jpg', './wbebi/15.jpg'
-            ];
-
-            // Floating gallery photos (solo folder: 37 images)
-            const photoUrls = [
-                './solo/1.jpg', './solo/2.jpg', './solo/3.jpg', './solo/4.jpg', './solo/5.jpg',
-                './solo/6.jpg', './solo/7.jpg', './solo/8.jpg', './solo/9.jpg', './solo/10.jpg',
-                './solo/11.jpg', './solo/12.jpg', './solo/13.jpg', './solo/14.jpg', './solo/15.jpg',
-                './solo/16.jpg', './solo/17.jpg', './solo/18.jpg', './solo/19.jpg', './solo/20.jpg',
-                './solo/21.jpg', './solo/22.jpg', './solo/23.jpg', './solo/24.jpg', './solo/25.jpg',
-                './solo/26.jpg', './solo/27.jpg', './solo/28.jpg', './solo/29.jpg', './solo/30.jpg',
-                './solo/31.jpg', './solo/32.jpg', './solo/33.jpg', './solo/34.jpg', './solo/35.jpg',
-                './solo/36.jpg', './solo/37.jpg'
+            const imgUrls = [
+                'https://i.imgur.com/5uBp68k.jpg', 'https://i.imgur.com/lHk1gin.jpg',
+                'https://i.imgur.com/rDgS0x8.jpg', 'https://i.imgur.com/ZgLkA94.jpg', 'https://i.imgur.com/bSZvGWx.jpg'
             ];
 
             function createHeartTexture() {
@@ -677,19 +608,19 @@ class BGHeart {
             const globeTex = new THREE.CanvasTexture(mC);
             globeTex.wrapS = THREE.RepeatWrapping;
 
-            globeUrls.forEach((url, i) => {
+            imgUrls.forEach((url, i) => {
                 const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
                 img.onload = () => {
                     for(let row=0; row<16; row++) { 
                         for(let col=0; col<11; col++) {
-                            if((row+col)%15===i) mX.drawImage(img, col*204, row*68, 205, 69); 
+                            if((row+col)%5===i) mX.drawImage(img, col*204, row*68, 205, 69); 
                         }
                     }
                     globeTex.needsUpdate = true;
                 };
             });
-            const globeMat = new THREE.MeshStandardMaterial({ map: globeTex, transparent: true, opacity: 0, side: THREE.FrontSide });
-            const globe = new THREE.Mesh(new THREE.SphereGeometry(11, 128, 128), globeMat);
+            const globeMat = new THREE.MeshStandardMaterial({ map: globeTex, transparent: true, opacity: 0, emissive: 0xff0088, emissiveIntensity: 0.3, side: THREE.DoubleSide });
+            const globe = new THREE.Mesh(new THREE.SphereGeometry(7, 128, 128), globeMat);
             scene.add(globe);
 
             const loveQuotes = [
@@ -841,12 +772,12 @@ class BGHeart {
             photoGroup.visible = false;
             scene.add(photoGroup);
             const photos = [];
-            const TOTAL_PHOTOS = 37;
+            const TOTAL_PHOTOS = 15;
             const MIN_SPAWN_INTERVAL = 1.2;
             let lastPhotoSpawnTime = 0;
 
             for (let i = 0; i < TOTAL_PHOTOS; i++) {
-                const url = photoUrls[i];
+                const url = imgUrls[i % imgUrls.length];
                 new THREE.TextureLoader().load(url, (t) => {
                     const aspect = t.image.width / t.image.height;
                     const width = aspect > 1 ? 6 : 4;
@@ -867,29 +798,30 @@ class BGHeart {
                 });
             }
 
+            // --- Inside-globe state ---
             let isInsideGlobe = false;
-            const INSIDE_GLOBE_FOV = 150;
-            const OUTSIDE_GLOBE_FOV = 75;
-            const INSIDE_GLOBE_Z = 0;
-            const OUTSIDE_GLOBE_Z = 22;
-            let globeTransitionTime = 0;
-            const GLOBE_TRANSITION_DURATION = 0.8;
+            let insideProgress = 0; // 0 = outside, 1 = fully inside
+            const GLOBE_ENTER_SPEED = 1.4; // how fast the transition runs (per second)
+            const FOV_OUTSIDE = 75, FOV_INSIDE = 130;
+            const CAM_Z_OUTSIDE = 22, CAM_Z_INSIDE = 0;
 
             container.addEventListener('mousedown', (e) => {
-                if (phase !== "gallery" && phase !== "globe") return;
-                
+                // While inside the globe, any click exits
+                if (isInsideGlobe) { isInsideGlobe = false; return; }
+
+                mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse3D, camera);
+
+                // Globe phase: click the globe surface to enter
+                if (phase === "globe") {
+                    const globeHits = raycaster.intersectObject(globe);
+                    if (globeHits.length > 0) { isInsideGlobe = true; return; }
+                }
+
+                if (phase !== "gallery") return;
                 mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1; mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 raycaster.setFromCamera(mouse3D, camera);
-                
-                // Check for globe click
-                const globeIntersects = raycaster.intersectObject(globe);
-                if (globeIntersects.length > 0 && phase === "globe") {
-                    toggleGlobeInsideView();
-                    return;
-                }
-                
-                // Check for photo clicks
-                if (phase !== "gallery") return;
                 const intersects = raycaster.intersectObjects(photoGroup.children, true);
                 if (intersects.length > 0) {
                     const hit = intersects.find(o => o.object.name === "photo_mesh");
@@ -900,53 +832,6 @@ class BGHeart {
                     }
                 }
             });
-
-            function toggleGlobeInsideView() {
-                isInsideGlobe = !isInsideGlobe;
-                globeTransitionTime = 0;
-            }
-
-            function updateGlobeInsideView() {
-                if (isInsideGlobe) {
-                    globeTransitionTime += clock.getDelta();
-                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
-                    
-                    // Smooth camera Z position
-                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
-                    
-                    // Smooth FOV transition
-                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
-                    camera.fov = targetFov;
-                    
-                    // Transition globe material side at midpoint
-                    if (progress >= 0.5 && globeMat.side === THREE.FrontSide) {
-                        globeMat.side = THREE.BackSide;
-                        globeMat.needsUpdate = true;
-                    }
-                } else if (!isInsideGlobe && globeTransitionTime > 0) {
-                    globeTransitionTime -= clock.getDelta();
-                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
-                    
-                    // Smooth camera Z position back
-                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
-                    
-                    // Smooth FOV transition back
-                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
-                    camera.fov = targetFov;
-                    
-                    // Transition globe material side back at midpoint
-                    if (progress <= 0.5 && globeMat.side === THREE.BackSide) {
-                        globeMat.side = THREE.FrontSide;
-                        globeMat.needsUpdate = true;
-                    }
-                    
-                    if (globeTransitionTime <= 0) {
-                        globeTransitionTime = 0;
-                    }
-                }
-                
-                camera.updateProjectionMatrix();
-            }
 
             let transitionStartTime = null;
             const TRANSITION_DURATION = 1.8;
@@ -966,17 +851,27 @@ class BGHeart {
                 document.getElementById('ui-layer').style.display = "none"; 
             };
             scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-            camera.position.z = 22;
+            camera.position.z = CAM_Z_OUTSIDE;
 
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
                 controls.update();
-                
-                // Update globe inside/outside view transition
-                updateGlobeInsideView();
-                
+
+                // Smooth inside-globe camera transition
+                insideProgress = isInsideGlobe
+                    ? Math.min(1, insideProgress + delta * GLOBE_ENTER_SPEED)
+                    : Math.max(0, insideProgress - delta * GLOBE_ENTER_SPEED);
+                const gEase = insideProgress < 0.5
+                    ? 2 * insideProgress * insideProgress
+                    : 1 - Math.pow(-2 * insideProgress + 2, 2) / 2;
+                camera.fov = FOV_OUTSIDE + (FOV_INSIDE - FOV_OUTSIDE) * gEase;
+                camera.position.z = CAM_Z_OUTSIDE + (CAM_Z_INSIDE - CAM_Z_OUTSIDE) * gEase;
+                camera.updateProjectionMatrix();
+                // Disable orbit controls while inside so the globe wraps around you
+                controls.enabled = (phase === "globe" || phase === "gallery") && !isInsideGlobe;
+
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
                     controls.target.y = THREE.MathUtils.clamp(controls.target.y, -PAN_LIMIT, PAN_LIMIT);
