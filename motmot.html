@@ -204,7 +204,7 @@
 
     <!-- Bottom buttons -->
     <div id="ui-layer">
-        <button id="click-btn">Begin Journey</button>
+        <button id="click-btn">View More</button>
         <button id="peek-btn">✦ Peek Inside</button>
     </div>
 
@@ -496,16 +496,23 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // OrbitControls — horizontal orbit for left/right globe navigation
+            // OrbitControls — left-click rotates globe (left/right), right-click pans the space
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.07;
-            controls.enabled = false; 
-            controls.minPolarAngle = Math.PI / 2;
+            controls.enabled = false;
+            controls.minPolarAngle = Math.PI / 2;   // lock horizontal so left-drag only orbits L/R
             controls.maxPolarAngle = Math.PI / 2;
-            controls.enablePan = false;   // no panning
+            controls.enablePan = true;              // right-click drag navigates the space
+            controls.screenSpacePanning = true;     // pan in screen space (feels natural)
             controls.autoRotate = false;
-            controls.enableZoom = false;  // no zoom
+            controls.enableZoom = false;
+            // Explicit mouse button mapping
+            controls.mouseButtons = {
+                LEFT:   THREE.MOUSE.ROTATE,
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT:  THREE.MOUSE.PAN
+            };
             
             const PAN_LIMIT = 15;
 
@@ -671,28 +678,42 @@
             let insideProgress = 0;         // 0 = fully outside, 1 = fully inside
             const INSIDE_SPEED = 1.5;       // transition speed (progress/sec)
             const FOV_OUTSIDE = 75;
-            const FOV_INSIDE  = 145;        // wide fisheye when inside
+            const FOV_INSIDE  = 160;        // very wide fisheye — matches reference photo look
             const CAM_Z_OUTSIDE = 22;
-            const CAM_Z_INSIDE  = 0;        // camera at globe centre
+            const CAM_Z_INSIDE  = 0.8;     // slightly off dead-centre for better perspective depth
 
-            /* Inside-globe drag state */
+            // Interior point light — makes photo tiles glow naturally from inside
+            const insideLight = new THREE.PointLight(0xffffff, 0, 0); // intensity starts at 0
+            insideLight.position.set(0, 0, 0);
+            scene.add(insideLight);
+
+            /* Inside-globe drag state — supports both horizontal AND slight vertical drag */
             let isDragging = false;
             let dragLastX = 0;
-            let globeVelocityY = 0;         // momentum for inertial drag
+            let dragLastY = 0;
+            let globeVelocityY = 0;         // momentum for inertial horizontal drag
+            let globeVelocityX = 0;         // slight vertical tilt momentum
 
             renderer.domElement.addEventListener('mousedown', e => {
                 if (!isInsideGlobe) return;
                 isDragging = true;
                 dragLastX = e.clientX;
+                dragLastY = e.clientY;
                 globeVelocityY = 0;
+                globeVelocityX = 0;
             });
             window.addEventListener('mouseup', () => { isDragging = false; });
             window.addEventListener('mousemove', e => {
                 if (!isInsideGlobe || !isDragging) return;
                 const dx = e.clientX - dragLastX;
+                const dy = e.clientY - dragLastY;
                 globeVelocityY = dx * 0.006;
+                globeVelocityX = dy * 0.003;
                 globe.rotation.y += globeVelocityY;
+                // Slight vertical tilt with hard clamp so photos don't disappear
+                globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x + globeVelocityX, -0.5, 0.5);
                 dragLastX = e.clientX;
+                dragLastY = e.clientY;
             });
 
             // Peek Inside button
@@ -707,6 +728,14 @@
                 isInsideGlobe = false;
                 isDragging = false;
                 globeVelocityY = 0;
+                globeVelocityX = 0;
+                // Gently reset globe tilt back to flat
+                const resetTilt = () => {
+                    globe.rotation.x = THREE.MathUtils.lerp(globe.rotation.x, 0, 0.08);
+                    if (Math.abs(globe.rotation.x) > 0.001) requestAnimationFrame(resetTilt);
+                    else globe.rotation.x = 0;
+                };
+                resetTilt();
                 document.getElementById('inside-close-btn').classList.remove('visible');
                 document.getElementById('inside-hint').classList.remove('visible');
             });
@@ -865,10 +894,13 @@
                 });
                 photoGroup.visible = true;
                 document.getElementById('ui-layer').style.display = "none";
-                // Also hide peek UI if it was open
+                // Close inside-globe view if open
+                isInsideGlobe = false;
+                isDragging = false;
+                globeVelocityY = 0; globeVelocityX = 0;
+                globe.rotation.x = 0;
                 document.getElementById('inside-close-btn').classList.remove('visible');
                 document.getElementById('inside-hint').classList.remove('visible');
-                isInsideGlobe = false;
             };
 
             scene.add(new THREE.AmbientLight(0xffffff, 1.2));
@@ -904,15 +936,30 @@
                     globeMat.needsUpdate = true;
                 }
 
+                // While transitioning inside, keep globe fully opaque so photos are vivid
+                if (isInsideGlobe && globeMat.opacity < 1) {
+                    globeMat.opacity = Math.min(1, globeMat.opacity + 0.04);
+                    globeTex.needsUpdate = true;
+                }
+
                 // OrbitControls active only when outside and in globe/gallery phase
                 controls.enabled = !isInsideGlobe && (phase === "globe" || phase === "gallery");
                 controls.update();
 
-                // Inertial drag momentum decay inside
-                if (isInsideGlobe && !isDragging && Math.abs(globeVelocityY) > 0.0001) {
-                    globe.rotation.y += globeVelocityY;
-                    globeVelocityY *= 0.92; // friction
+                // Inertial drag momentum decay inside (both axes)
+                if (isInsideGlobe && !isDragging) {
+                    if (Math.abs(globeVelocityY) > 0.0001) {
+                        globe.rotation.y += globeVelocityY;
+                        globeVelocityY *= 0.92;
+                    }
+                    if (Math.abs(globeVelocityX) > 0.0001) {
+                        globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x + globeVelocityX, -0.5, 0.5);
+                        globeVelocityX *= 0.92;
+                    }
                 }
+
+                // Animate interior point light — ramps up when peeking inside
+                insideLight.intensity = THREE.MathUtils.lerp(insideLight.intensity, ease * 2.8, 0.06);
 
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
