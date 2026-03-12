@@ -239,6 +239,7 @@
         document.addEventListener('cut', function(e) { e.preventDefault(); return false; });
         document.addEventListener('paste', function(e) { e.preventDefault(); return false; });
         document.addEventListener('selectstart', function(e) { e.preventDefault(); return false; });
+        document.addEventListener('wheel', function(e) { e.preventDefault(); return false; }, { passive: false });
 
         const CORRECT_CODE = "021226";
         let currentInput = "";
@@ -496,23 +497,23 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // OrbitControls — left-click rotates globe L/R only; scroll wheel zooms within particle range
+            // OrbitControls — left-click rotates globe L/R only; right-click zooms and pans the whole space
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.07;
             controls.enabled = false;
             controls.minPolarAngle = Math.PI / 2;   // lock vertical so left-drag only orbits L/R
             controls.maxPolarAngle = Math.PI / 2;
-            controls.enablePan = false;             // no panning — left-click is orbit only
+            controls.enablePan = true;              // enable panning for right-click navigation
             controls.autoRotate = false;
-            controls.enableZoom = true;             // scroll wheel zoom
+            controls.enableZoom = false;            // disable scroll wheel zoom (use right-click DOLLY instead)
             controls.minDistance = 10;              // can't zoom closer than radius+buffer
             controls.maxDistance = 50;              // stays within the visible particle field
-            // Explicit mouse button mapping — only left-click does anything
+            // Explicit mouse button mapping — left-click rotates L/R, right-click zooms and pans
             controls.mouseButtons = {
-                LEFT:   THREE.MOUSE.ROTATE,
-                MIDDLE: THREE.MOUSE.DOLLY,
-                RIGHT:  null                        // right-click does nothing
+                LEFT:   THREE.MOUSE.ROTATE,        // left-click: horizontal rotation only
+                MIDDLE: null,                       // middle-click: disabled
+                RIGHT:  THREE.MOUSE.DOLLY           // right-click: zoom (dolly) + pan for full space navigation
             };
             
             const PAN_LIMIT = 15;
