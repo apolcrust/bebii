@@ -496,22 +496,23 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // OrbitControls — left-click rotates globe (left/right), right-click pans the space
+            // OrbitControls — left-click rotates globe L/R only; scroll wheel zooms within particle range
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.07;
             controls.enabled = false;
-            controls.minPolarAngle = Math.PI / 2;   // lock horizontal so left-drag only orbits L/R
+            controls.minPolarAngle = Math.PI / 2;   // lock vertical so left-drag only orbits L/R
             controls.maxPolarAngle = Math.PI / 2;
-            controls.enablePan = true;              // right-click drag navigates the space
-            controls.screenSpacePanning = true;     // pan in screen space (feels natural)
+            controls.enablePan = false;             // no panning — left-click is orbit only
             controls.autoRotate = false;
-            controls.enableZoom = false;
-            // Explicit mouse button mapping
+            controls.enableZoom = true;             // scroll wheel zoom
+            controls.minDistance = 10;              // can't zoom closer than radius+buffer
+            controls.maxDistance = 50;              // stays within the visible particle field
+            // Explicit mouse button mapping — only left-click does anything
             controls.mouseButtons = {
                 LEFT:   THREE.MOUSE.ROTATE,
                 MIDDLE: THREE.MOUSE.DOLLY,
-                RIGHT:  THREE.MOUSE.PAN
+                RIGHT:  null                        // right-click does nothing
             };
             
             const PAN_LIMIT = 15;
@@ -661,8 +662,8 @@
                 };
             });
 
-            // Globe material — FrontSide by default; switches to BackSide when peeking inside
-            const globeMat = new THREE.MeshStandardMaterial({
+            // Globe material — MeshBasicMaterial so photos render flat (unlit) with no brightness distortion
+            const globeMat = new THREE.MeshBasicMaterial({
                 map: globeTex,
                 transparent: true,
                 opacity: 0,
@@ -681,11 +682,6 @@
             const FOV_INSIDE  = 160;        // very wide fisheye — matches reference photo look
             const CAM_Z_OUTSIDE = 22;
             const CAM_Z_INSIDE  = 0.8;     // slightly off dead-centre for better perspective depth
-
-            // Interior point light — makes photo tiles glow naturally from inside
-            const insideLight = new THREE.PointLight(0xffffff, 0, 0); // intensity starts at 0
-            insideLight.position.set(0, 0, 0);
-            scene.add(insideLight);
 
             /* Inside-globe drag state — supports both horizontal AND slight vertical drag */
             let isDragging = false;
@@ -957,9 +953,6 @@
                         globeVelocityX *= 0.92;
                     }
                 }
-
-                // Animate interior point light — ramps up when peeking inside
-                insideLight.intensity = THREE.MathUtils.lerp(insideLight.intensity, ease * 2.8, 0.06);
 
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
