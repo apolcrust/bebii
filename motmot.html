@@ -92,6 +92,7 @@
         .shake { animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-8px); } 80% { transform: translateX(8px); } }
 
+        /* ── Bottom button row: flex so both buttons sit side-by-side ── */
         #ui-layer {
             position: absolute;
             bottom: 40px;
@@ -99,8 +100,14 @@
             transform: translateX(-50%);
             z-index: 10;
             display: none;
+            flex-direction: row;
+            align-items: center;
+            gap: 20px;
+            white-space: nowrap;
         }
-        #click-btn {
+
+        /* Shared style for both bottom buttons */
+        #click-btn, #peek-btn {
             padding: 15px 40px; font-size: 16px; font-weight: bold; color: white;
             background: rgba(255, 0, 136, 0.1); border: 1px solid rgba(255, 0, 136, 0.6);
             border-radius: 50px; 
@@ -112,13 +119,51 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        #click-btn:hover { 
+        #click-btn:hover, #peek-btn:hover { 
             background: #ff0088; 
             box-shadow: 0 0 40px #ff0088; 
             transform: scale(1.05);
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 25px rgba(255, 20, 147, 0.6);
             cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="wideGlow"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="tightGlow"/><feMerge><feMergeNode in="wideGlow"/><feMergeNode in="tightGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23glow2)" opacity="0.99">I love youuuu</text></svg>') 55 20, auto;
         }
+
+        /* ── Inside-globe X close button (top-right, only visible when peeking) ── */
+        #inside-close-btn {
+            position: fixed;
+            top: 30px; right: 40px;
+            z-index: 30;
+            display: none;
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: rgba(255, 0, 136, 0.18);
+            border: 1.5px solid rgba(255, 0, 136, 0.65);
+            color: #ff9aa2;
+            font-size: 24px; font-weight: bold;
+            align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 16px rgba(255, 0, 136, 0.3);
+            user-select: none;
+        }
+        #inside-close-btn.visible { display: flex; }
+        #inside-close-btn:hover {
+            background: rgba(255, 0, 136, 0.5);
+            border-color: #ff9aa2;
+            box-shadow: 0 0 28px rgba(255, 0, 136, 0.7);
+            transform: scale(1.1);
+        }
+        /* Hint label beside the X */
+        #inside-hint {
+            position: fixed;
+            top: 42px; right: 102px;
+            z-index: 30;
+            display: none;
+            color: rgba(255, 183, 197, 0.7);
+            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+            text-shadow: 0 0 8px rgba(255, 20, 147, 0.5);
+            pointer-events: none;
+        }
+        #inside-hint.visible { display: block; }
 
         canvas#c { position: absolute; top: 0; left: 0; z-index: 1; transition: filter 2s ease; pointer-events: none; user-select: none; }
         #three-canvas-container { 
@@ -127,55 +172,6 @@
             transition: opacity 2.5s ease;
             user-select: none;
             -webkit-user-select: none;
-        }
-        #globe-zoom-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(5, 2, 8, 0.95);
-            display: none; z-index: 50;
-            flex-direction: column; justify-content: center; align-items: center;
-            opacity: 0; transition: opacity 0.4s ease;
-        }
-        #globe-zoom-overlay.active {
-            display: flex;
-            opacity: 1;
-        }
-        #globe-zoom-header {
-            position: absolute; top: 30px; width: 100%; text-align: center;
-            color: #ff9aa2; font-size: 24px; font-weight: 700;
-            letter-spacing: 3px; text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 0, 136, 0.8), 0 0 20px rgba(255, 105, 180, 0.6);
-            user-select: none;
-        }
-        #globe-zoom-close {
-            position: absolute; top: 30px; right: 40px;
-            background: rgba(255, 0, 136, 0.2); border: 1.5px solid rgba(255, 0, 136, 0.6);
-            color: #ff9aa2; font-size: 28px; width: 50px; height: 50px;
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s ease;
-            user-select: none; font-weight: bold;
-        }
-        #globe-zoom-close:hover {
-            background: rgba(255, 0, 136, 0.4); border-color: #ff9aa2;
-            box-shadow: 0 0 20px rgba(255, 0, 136, 0.6);
-        }
-        #globe-zoom-grid {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;
-            padding: 100px 40px 40px; max-width: 1400px;
-            max-height: calc(100vh - 120px); overflow-y: auto;
-        }
-        .globe-zoom-item {
-            aspect-ratio: 1; border-radius: 12px;
-            border: 2px solid rgba(255, 154, 162, 0.3);
-            overflow: hidden; box-shadow: 0 0 20px rgba(255, 0, 136, 0.2);
-            transition: all 0.3s ease; cursor: pointer;
-        }
-        .globe-zoom-item img {
-            width: 100%; height: 100%; object-fit: cover;
-        }
-        .globe-zoom-item:hover {
-            border-color: rgba(255, 154, 162, 0.8);
-            box-shadow: 0 0 40px rgba(255, 0, 136, 0.5);
-            transform: scale(1.05);
         }
     </style>
 </head>
@@ -205,14 +201,16 @@
     </div>
 
     <div id="three-canvas-container"></div>
+
+    <!-- Bottom buttons -->
     <div id="ui-layer">
         <button id="click-btn">Begin Journey</button>
+        <button id="peek-btn">✦ Peek Inside</button>
     </div>
-    <div id="globe-zoom-overlay">
-        <div id="globe-zoom-header">Globe Images</div>
-        <button id="globe-zoom-close">✕</button>
-        <div id="globe-zoom-grid"></div>
-    </div>
+
+    <!-- Inside-globe close controls -->
+    <span id="inside-hint">drag to explore</span>
+    <button id="inside-close-btn">✕</button>
 
     <script type="importmap">
         {
@@ -297,13 +295,13 @@
             mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
         });
 
-function heartPath(cx, cy, r) {
-    ctx.beginPath();
-    ctx.moveTo(cx, cy + r); 
-    ctx.bezierCurveTo(cx - r, cy, cx - r, cy - r * 1.5, cx, cy - r * 0.5);
-    ctx.bezierCurveTo(cx + r, cy - r * 1.5, cx + r, cy, cx, cy + r);
-    ctx.closePath();
-}
+        function heartPath(cx, cy, r) {
+            ctx.beginPath();
+            ctx.moveTo(cx, cy + r); 
+            ctx.bezierCurveTo(cx - r, cy, cx - r, cy - r * 1.5, cx, cy - r * 0.5);
+            ctx.bezierCurveTo(cx + r, cy - r * 1.5, cx + r, cy, cx, cy + r);
+            ctx.closePath();
+        }
 
         const CONSTELLATIONS_DEF = [
             { name: 'Aries', highlight: false, stars: [{ nx: 0.05, ny: 0.05 }, { nx: 0.12, ny: 0.08 }, { nx: 0.15, ny: 0.12 }], edges: [[0, 1], [1, 2]] },
@@ -321,48 +319,48 @@ function heartPath(cx, cy, r) {
         ];
 
         let bgHearts = [], constellations = [];
-        let globalTime = 0; // used for pulsing glow on highlighted constellations
+        let globalTime = 0;
 
-class BGHeart {
-    constructor() { this.reset(); }
-    reset() {
-        this.bx = Math.random() * canvas.width; 
-        this.by = Math.random() * canvas.height;
-        this.x = this.bx; 
-        this.y = this.by; 
-        this.r = Math.random() * 4 + 3; 
-        this.density = Math.random() * 10 + 5; 
-        this.alpha = Math.random() * Math.PI * 2;
-        this.alphaSpeed = 0.01 + Math.random() * 0.02;
-        this.vx = (Math.random() - 0.5) * 0.2; 
-        this.vy = (Math.random() - 0.5) * 0.2;
-    }
-    update() {
-        this.bx += this.vx; this.by += this.vy;
-        if (this.bx < -20) this.bx = canvas.width + 20; 
-        if (this.bx > canvas.width + 20) this.bx = -20;
-        if (this.by < -20) this.by = canvas.height + 20; 
-        if (this.by > canvas.height + 20) this.by = -20;
-        
-        const dx = mouse.x - this.x, dy = mouse.y - this.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        
-        if (mouse.active && dist < mouse.r) {
-            const force = (mouse.r - dist) / mouse.r;
-            this.x -= (dx / dist) * force * this.density; 
-            this.y -= (dy / dist) * force * this.density;
-        } else {
-            this.x += (this.bx - this.x) * 0.05; 
-            this.y += (this.by - this.y) * 0.05;
+        class BGHeart {
+            constructor() { this.reset(); }
+            reset() {
+                this.bx = Math.random() * canvas.width; 
+                this.by = Math.random() * canvas.height;
+                this.x = this.bx; 
+                this.y = this.by; 
+                this.r = Math.random() * 4 + 3; 
+                this.density = Math.random() * 10 + 5; 
+                this.alpha = Math.random() * Math.PI * 2;
+                this.alphaSpeed = 0.01 + Math.random() * 0.02;
+                this.vx = (Math.random() - 0.5) * 0.2; 
+                this.vy = (Math.random() - 0.5) * 0.2;
+            }
+            update() {
+                this.bx += this.vx; this.by += this.vy;
+                if (this.bx < -20) this.bx = canvas.width + 20; 
+                if (this.bx > canvas.width + 20) this.bx = -20;
+                if (this.by < -20) this.by = canvas.height + 20; 
+                if (this.by > canvas.height + 20) this.by = -20;
+                
+                const dx = mouse.x - this.x, dy = mouse.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (mouse.active && dist < mouse.r) {
+                    const force = (mouse.r - dist) / mouse.r;
+                    this.x -= (dx / dist) * force * this.density; 
+                    this.y -= (dy / dist) * force * this.density;
+                } else {
+                    this.x += (this.bx - this.x) * 0.05; 
+                    this.y += (this.by - this.y) * 0.05;
+                }
+                
+                this.alpha += this.alphaSpeed;
+                ctx.globalAlpha = 0.2 + Math.abs(Math.sin(this.alpha)) * 0.4;
+                ctx.fillStyle = '#ff9aa2';
+                heartPath(this.x, this.y, this.r); 
+                ctx.fill();
+            }
         }
-        
-        this.alpha += this.alphaSpeed;
-        ctx.globalAlpha = 0.2 + Math.abs(Math.sin(this.alpha)) * 0.4;
-        ctx.fillStyle = '#ff9aa2';
-        heartPath(this.x, this.y, this.r); 
-        ctx.fill();
-    }
-}
 
         class ConStar {
             constructor(nx, ny, highlight) {
@@ -385,23 +383,19 @@ class BGHeart {
                 const base = this.highlight ? 0.4 : 0.25;
                 const amp  = this.highlight ? 0.6 : 0.45;
                 ctx.globalAlpha = base + Math.abs(Math.sin(this.pulse)) * amp;
-                ctx.fillStyle = this.highlight ? '#ffffff' : '#ff9aa2';
                 if (this.highlight) {
-                    // ADDED: extra outer glow halo for highlighted stars
                     const breathe = 0.5 + 0.5 * Math.sin(globalTime * 2);
                     ctx.shadowBlur = 25 + breathe * 10;
                     ctx.shadowColor = 'rgba(255, 20, 147, 0.9)';
-                    // draw a slightly larger soft halo behind the star
                     ctx.globalAlpha = 0.25 + breathe * 0.2;
                     heartPath(this.x, this.y, this.r * 1.5);
                     ctx.fillStyle = '#ff1493';
                     ctx.fill();
-                    // restore for the main star draw below
                     ctx.globalAlpha = base + Math.abs(Math.sin(this.pulse)) * amp;
                     ctx.fillStyle = '#ffb7c5';
                     ctx.shadowBlur = 22;
                     ctx.shadowColor = 'rgba(255, 183, 197, 0.9)';
-                }
+                } else { ctx.fillStyle = '#ff9aa2'; }
                 heartPath(this.x, this.y, this.r); ctx.fill();
                 ctx.restore();
             }
@@ -434,12 +428,9 @@ class BGHeart {
             globalTime += 0.016;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawNebula();
-            
             bgHearts.forEach(h => h.update());
             ctx.globalAlpha = 1;
-            
             constellations.forEach(con => {
-                // ADDED: extra outer glow pass for Scorpius & Sagittarius lines
                 if (con.highlight) {
                     const breathe = 0.5 + 0.5 * Math.sin(globalTime * 1.6);
                     ctx.beginPath();
@@ -448,67 +439,37 @@ class BGHeart {
                         ctx.moveTo(sa.x, sa.y + sa.r * 0.4); ctx.lineTo(sb.x, sb.y + sb.r * 0.4);
                     });
                     ctx.globalAlpha = 0.25 + breathe * 0.2;
-                    ctx.strokeStyle = '#ff1493';
-                    ctx.lineWidth = 6;
-                    ctx.shadowBlur = 60;
-                    ctx.shadowColor = 'rgba(255, 20, 147, 0.95)';
-                    ctx.stroke();
-                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#ff1493'; ctx.lineWidth = 6;
+                    ctx.shadowBlur = 60; ctx.shadowColor = 'rgba(255, 20, 147, 0.95)';
+                    ctx.stroke(); ctx.shadowBlur = 0;
                 }
-
                 ctx.beginPath();
                 con.edges.forEach(([a, b]) => {
                     const sa = con.stars[a], sb = con.stars[b];
                     ctx.moveTo(sa.x, sa.y + sa.r * 0.4); ctx.lineTo(sb.x, sb.y + sb.r * 0.4);
                 });
-                ctx.globalAlpha = con.highlight ? 0.6 : 0.60;
-                ctx.strokeStyle = '#ffb7c5'; ctx.lineWidth = con.highlight ? 1.5 : 0.8;
-                if (con.highlight) {
-                    ctx.shadowBlur = 30;
-                    ctx.shadowColor = 'rgba(255, 20, 147, 0.7)';
-                }
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-
+                ctx.globalAlpha = 0.60; ctx.strokeStyle = '#ffb7c5'; ctx.lineWidth = con.highlight ? 1.5 : 0.8;
+                if (con.highlight) { ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(255, 20, 147, 0.7)'; }
+                ctx.stroke(); ctx.shadowBlur = 0;
                 let avgX = 0, avgY = 0;
-                con.stars.forEach(s => { 
-                    s.update(); 
-                    avgX += s.x; avgY += s.y;
-                });
-                avgX /= con.stars.length;
-                avgY /= con.stars.length;
-
+                con.stars.forEach(s => { s.update(); avgX += s.x; avgY += s.y; });
+                avgX /= con.stars.length; avgY /= con.stars.length;
                 const distToMouse = Math.hypot(mouse.x - avgX, mouse.y - avgY);
                 if (distToMouse < 150) {
-                    ctx.save();
-                    ctx.textAlign = 'center';
-                    const labelAlpha = (150 - distToMouse) / 150;
-                    ctx.globalAlpha = labelAlpha;
-
+                    ctx.save(); ctx.textAlign = 'center';
+                    ctx.globalAlpha = (150 - distToMouse) / 150;
                     if (con.highlight) {
-                        // Neon glow: draw the text 3 times with decreasing blur for a layered neon effect
                         ctx.font = 'bold 13px sans-serif';
-                        // Layer 1 — wide outer glow
-                        ctx.shadowBlur = 20;
-                        ctx.shadowColor = '#ff1493';
-                        ctx.fillStyle = '#ff1493';
+                        ctx.shadowBlur = 20; ctx.shadowColor = '#ff1493'; ctx.fillStyle = '#ff1493';
                         ctx.fillText(con.name.toUpperCase(), avgX, avgY + 35);
-                        // Layer 2 — tighter mid glow
-                        ctx.shadowBlur = 10;
-                        ctx.shadowColor = '#ff69b4';
-                        ctx.fillStyle = '#ff69b4';
+                        ctx.shadowBlur = 10; ctx.shadowColor = '#ff69b4'; ctx.fillStyle = '#ff69b4';
                         ctx.fillText(con.name.toUpperCase(), avgX, avgY + 35);
-                        // Layer 3 — bright core
-                        ctx.shadowBlur = 4;
-                        ctx.shadowColor = '#ffb7c5';
-                        ctx.fillStyle = '#ffb7c5';
+                        ctx.shadowBlur = 4; ctx.shadowColor = '#ffb7c5'; ctx.fillStyle = '#ffb7c5';
                         ctx.fillText(con.name.toUpperCase(), avgX, avgY + 35);
                     } else {
-                        ctx.fillStyle = '#ffb7c5';
-                        ctx.font = '300 11px sans-serif';
+                        ctx.fillStyle = '#ffb7c5'; ctx.font = '300 11px sans-serif';
                         ctx.fillText(con.name.toUpperCase(), avgX, avgY + 35);
                     }
-
                     ctx.restore();
                 }
             });
@@ -519,7 +480,9 @@ class BGHeart {
         animate2D();
         window.addEventListener('resize', () => { if(!threeInitialized) buildScene2D(); });
 
-        /* --- THREE.JS SCENE START --- */
+        /* ════════════════════════════════════════════
+           THREE.JS SCENE
+        ════════════════════════════════════════════ */
         function startThreeScene() {
             threeInitialized = true;
             const container = document.getElementById('three-canvas-container');
@@ -533,14 +496,16 @@ class BGHeart {
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
+            // OrbitControls — horizontal orbit for left/right globe navigation
             const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true; controls.enabled = false; 
-            controls.minPolarAngle = Math.PI / 2; controls.maxPolarAngle = Math.PI / 2;
-            controls.minDistance = 15;
-            controls.maxDistance = 35;
-            controls.enablePan = true;
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.07;
+            controls.enabled = false; 
+            controls.minPolarAngle = Math.PI / 2;
+            controls.maxPolarAngle = Math.PI / 2;
+            controls.enablePan = false;   // no panning
             controls.autoRotate = false;
-            controls.enableZoom = true;
+            controls.enableZoom = false;  // no zoom
             
             const PAN_LIMIT = 15;
 
@@ -551,14 +516,12 @@ class BGHeart {
             let phase = "intro";
             let zoomedPhoto = null;
 
-            // Mosaic globe images (wbebi folder: 15 images)
             const globeUrls = [
                 './wbebi/1.jpg', './wbebi/2.jpg', './wbebi/3.jpg', './wbebi/4.jpg', './wbebi/5.jpg',
                 './wbebi/6.jpg', './wbebi/7.jpg', './wbebi/8.jpg', './wbebi/9.jpg', './wbebi/10.jpg',
                 './wbebi/11.jpg', './wbebi/12.jpg', './wbebi/13.jpg', './wbebi/14.jpg', './wbebi/15.jpg'
             ];
 
-            // Floating gallery photos (solo folder: 37 images)
             const photoUrls = [
                 './solo/1.jpg', './solo/2.jpg', './solo/3.jpg', './solo/4.jpg', './solo/5.jpg',
                 './solo/6.jpg', './solo/7.jpg', './solo/8.jpg', './solo/9.jpg', './solo/10.jpg',
@@ -596,10 +559,8 @@ class BGHeart {
             const firePos = new Float32Array(fireCount * 3); const fireSpeeds = new Float32Array(fireCount);
             for(let i=0; i<fireCount; i++) { firePos[i*3] = (Math.random()-0.5)*40; firePos[i*3+1] = -30 - Math.random()*20; firePos[i*3+2] = (Math.random()-0.5)*15; fireSpeeds[i] = 0.02 + Math.random()*0.04; }
             fireGeo.setAttribute('position', new THREE.BufferAttribute(firePos, 3));
-            
             const fireMat = new THREE.PointsMaterial({ size: 0.5, map: pTex, color: 0xff0088, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, alphaTest: 0.01, opacity: 0 });
-            const fireSystem = new THREE.Points(fireGeo, fireMat);
-            scene.add(fireSystem);
+            scene.add(new THREE.Points(fireGeo, fireMat));
 
             const hGroup = new THREE.Group();
             const hGroupMirror = new THREE.Group();
@@ -608,29 +569,16 @@ class BGHeart {
             const hPos = new Float32Array(hCount * 3);
             const hBasePos = new Float32Array(hCount * 3);
             const hVel = new Float32Array(hCount * 3);
-            
             for (let i = 0; i < hCount; i++) {
                 const u = Math.random() * Math.PI * 2;
                 let x = 16 * Math.pow(Math.sin(u), 3); let y = 13 * Math.cos(u) - 5 * Math.cos(2 * u) - 2 * Math.cos(3 * u) - Math.cos(4 * u);
-                const px = x * 0.5;
-                const py = y * 0.5;
-                const pz = (Math.random() - 0.5) * 4;
-                hBasePos[i*3]     = px;
-                hBasePos[i*3 + 1] = py;
-                hBasePos[i*3 + 2] = pz;
-                hPos[i*3]     = px;
-                hPos[i*3 + 1] = py;
-                hPos[i*3 + 2] = pz;
-                hVel[i*3]     = x * 0.8;
-                hVel[i*3 + 1] = y * 0.8;
-                hVel[i*3 + 2] = (Math.random() - 0.5) * 15;
+                hBasePos[i*3]=hPos[i*3]=x*0.5; hBasePos[i*3+1]=hPos[i*3+1]=y*0.5; hBasePos[i*3+2]=hPos[i*3+2]=(Math.random()-0.5)*4;
+                hVel[i*3]=x*0.8; hVel[i*3+1]=y*0.8; hVel[i*3+2]=(Math.random()-0.5)*15;
             }
             hGeo.setAttribute('position', new THREE.BufferAttribute(hPos, 3));
-            
             const hMat = new THREE.PointsMaterial({ size: 0.45, map: pTex, color: 0xff1493, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, alphaTest: 0.01, opacity: 1 });
-            const hPoints = new THREE.Points(hGeo, hMat);
-            hGroup.add(hPoints);
-            const hPointsMirror = hPoints.clone();
+            hGroup.add(new THREE.Points(hGeo, hMat));
+            const hPointsMirror = new THREE.Points(hGeo, hMat);
             hGroupMirror.add(hPointsMirror);
             hGroupMirror.rotation.y = Math.PI;
 
@@ -646,51 +594,122 @@ class BGHeart {
             }
             const tMatF = new THREE.MeshBasicMaterial({ map: createTextTexture(false), transparent: true, side: THREE.DoubleSide, depthTest: false, depthWrite: false, renderOrder: 999, alphaTest: 0.1, blending: THREE.NormalBlending });
             const tMatB = new THREE.MeshBasicMaterial({ map: createTextTexture(true), transparent: true, side: THREE.DoubleSide, depthTest: false, depthWrite: false, renderOrder: 999, alphaTest: 0.1, blending: THREE.NormalBlending });
-            tMatF.opacity = 0;
-            tMatB.opacity = 0;
-            
+            tMatF.opacity = 0; tMatB.opacity = 0;
             const textFront = new THREE.Mesh(new THREE.PlaneGeometry(14, 7), tMatF);
             const textBack = new THREE.Mesh(new THREE.PlaneGeometry(14, 7), tMatB);
             textBack.rotation.y = Math.PI; textBack.position.z = -0.05;
             hGroup.add(textFront, textBack);
-            const textFrontMirror = textFront.clone();
-            const textBackMirror = textBack.clone();
-            hGroupMirror.add(textFrontMirror, textBackMirror);
+            hGroupMirror.add(textFront.clone(), textBack.clone());
 
             const bgMat = new THREE.PointsMaterial({ size: 1.2, map: pTex, transparent: true, opacity: 1.0, color: 0xff1493, blending: THREE.AdditiveBlending, depthWrite: false, alphaTest: 0.01 });
-            const bgCount = 9000;
-            const bgBounds = 260;
-            const bgPos = new Float32Array(bgCount * 3);
-            const bgVel = new Float32Array(bgCount * 3);
+            const bgCount = 9000; const bgBounds = 260;
+            const bgPos = new Float32Array(bgCount * 3); const bgVel = new Float32Array(bgCount * 3);
             for (let i = 0; i < bgCount; i++) {
-                bgPos[i*3]     = (Math.random() - 0.5) * bgBounds;
-                bgPos[i*3 + 1] = (Math.random() - 0.5) * bgBounds;
-                bgPos[i*3 + 2] = (Math.random() - 0.5) * bgBounds;
-                bgVel[i*3]     = (Math.random() - 0.5) * 0.012;
-                bgVel[i*3 + 1] = (Math.random() - 0.5) * 0.012;
-                bgVel[i*3 + 2] = (Math.random() - 0.5) * 0.012;
+                bgPos[i*3]=(Math.random()-0.5)*bgBounds; bgPos[i*3+1]=(Math.random()-0.5)*bgBounds; bgPos[i*3+2]=(Math.random()-0.5)*bgBounds;
+                bgVel[i*3]=(Math.random()-0.5)*0.012; bgVel[i*3+1]=(Math.random()-0.5)*0.012; bgVel[i*3+2]=(Math.random()-0.5)*0.012;
             }
             const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
             scene.add(new THREE.Points(bgGeo, bgMat));
 
-            const mC = document.createElement('canvas'); mC.width = 2048; mC.height = 1024; const mX = mC.getContext('2d');
+            /* ── High-res mosaic globe texture ──
+               4096 × 2048 canvas, 9 cols × 5 rows = 45 cells.
+               Each of the 15 images fills exactly 3 cells (cell index % 15 === imgIndex).
+               Cell size: ~455 × 409 px → photos appear large and sharp.            */
+            const MCOLS = 9, MROWS = 5;
+            const MC_W = 4096, MC_H = 2048;
+            const CELL_W = Math.floor(MC_W / MCOLS);
+            const CELL_H = Math.floor(MC_H / MROWS);
+            const GAP = 5; // px gap between tiles
+
+            const mC = document.createElement('canvas');
+            mC.width = MC_W; mC.height = MC_H;
+            const mX = mC.getContext('2d');
+            mX.fillStyle = '#060109';
+            mX.fillRect(0, 0, MC_W, MC_H);
+
             const globeTex = new THREE.CanvasTexture(mC);
             globeTex.wrapS = THREE.RepeatWrapping;
+            // Maximum anisotropy for crisp texture at oblique angles
+            globeTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-            globeUrls.forEach((url, i) => {
+            globeUrls.forEach((url, imgIdx) => {
                 const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
                 img.onload = () => {
-                    for(let row=0; row<16; row++) { 
-                        for(let col=0; col<11; col++) {
-                            if((row+col)%15===i) mX.drawImage(img, col*204, row*68, 205, 69); 
+                    for (let row = 0; row < MROWS; row++) {
+                        for (let col = 0; col < MCOLS; col++) {
+                            const cellIdx = row * MCOLS + col;
+                            if (cellIdx % 15 === imgIdx) {
+                                const dx = col * CELL_W + GAP;
+                                const dy = row * CELL_H + GAP;
+                                const dw = CELL_W - GAP * 2;
+                                const dh = CELL_H - GAP * 2;
+                                // Draw with slight brightness boost via composite
+                                mX.save();
+                                mX.drawImage(img, dx, dy, dw, dh);
+                                mX.restore();
+                            }
                         }
                     }
                     globeTex.needsUpdate = true;
                 };
             });
-            const globeMat = new THREE.MeshStandardMaterial({ map: globeTex, transparent: true, opacity: 0, side: THREE.FrontSide });
+
+            // Globe material — FrontSide by default; switches to BackSide when peeking inside
+            const globeMat = new THREE.MeshStandardMaterial({
+                map: globeTex,
+                transparent: true,
+                opacity: 0,
+                side: THREE.FrontSide
+            });
             const globe = new THREE.Mesh(new THREE.SphereGeometry(11, 128, 128), globeMat);
             scene.add(globe);
+
+            /* ════════════════════════════════════
+               PEEK INSIDE STATE + TRANSITION
+            ════════════════════════════════════ */
+            let isInsideGlobe = false;
+            let insideProgress = 0;         // 0 = fully outside, 1 = fully inside
+            const INSIDE_SPEED = 1.5;       // transition speed (progress/sec)
+            const FOV_OUTSIDE = 75;
+            const FOV_INSIDE  = 145;        // wide fisheye when inside
+            const CAM_Z_OUTSIDE = 22;
+            const CAM_Z_INSIDE  = 0;        // camera at globe centre
+
+            /* Inside-globe drag state */
+            let isDragging = false;
+            let dragLastX = 0;
+            let globeVelocityY = 0;         // momentum for inertial drag
+
+            renderer.domElement.addEventListener('mousedown', e => {
+                if (!isInsideGlobe) return;
+                isDragging = true;
+                dragLastX = e.clientX;
+                globeVelocityY = 0;
+            });
+            window.addEventListener('mouseup', () => { isDragging = false; });
+            window.addEventListener('mousemove', e => {
+                if (!isInsideGlobe || !isDragging) return;
+                const dx = e.clientX - dragLastX;
+                globeVelocityY = dx * 0.006;
+                globe.rotation.y += globeVelocityY;
+                dragLastX = e.clientX;
+            });
+
+            // Peek Inside button
+            document.getElementById('peek-btn').addEventListener('click', () => {
+                isInsideGlobe = true;
+                document.getElementById('inside-close-btn').classList.add('visible');
+                document.getElementById('inside-hint').classList.add('visible');
+            });
+
+            // X close button
+            document.getElementById('inside-close-btn').addEventListener('click', () => {
+                isInsideGlobe = false;
+                isDragging = false;
+                globeVelocityY = 0;
+                document.getElementById('inside-close-btn').classList.remove('visible');
+                document.getElementById('inside-hint').classList.remove('visible');
+            });
 
             const loveQuotes = [
                 "In your smile, I find my home.",
@@ -712,32 +731,20 @@ class BGHeart {
 
             function createQuoteTexture(text) {
                 const c = document.createElement('canvas');
-                c.width = 1024;
-                c.height = 512;
+                c.width = 1024; c.height = 512;
                 const x = c.getContext('2d');
                 x.clearRect(0, 0, c.width, c.height);
-
-                x.textAlign = 'center';
-                x.textBaseline = 'middle';
+                x.textAlign = 'center'; x.textBaseline = 'middle';
                 x.font = '700 54px "Segoe UI", sans-serif';
-
-                x.shadowColor = 'rgba(255, 0, 136, 0.95)';
-                x.shadowBlur = 55;
-
+                x.shadowColor = 'rgba(255, 0, 136, 0.95)'; x.shadowBlur = 55;
                 const lines = [];
-                const words = text.split(' ');
-                let current = '';
+                const words = text.split(' '); let current = '';
                 for (let w of words) {
                     const test = current ? current + ' ' + w : w;
-                    if (x.measureText(test).width > 800) {
-                        lines.push(current);
-                        current = w;
-                    } else {
-                        current = test;
-                    }
+                    if (x.measureText(test).width > 800) { lines.push(current); current = w; }
+                    else { current = test; }
                 }
                 if (current) lines.push(current);
-
                 const startY = c.height / 2 - (lines.length - 1) * 32;
                 lines.forEach((line, i) => {
                     const yy = startY + i * 64;
@@ -745,64 +752,39 @@ class BGHeart {
                     g.addColorStop(0, 'rgba(255, 255, 255, 0.98)');
                     g.addColorStop(0.5, 'rgba(255, 183, 197, 0.98)');
                     g.addColorStop(1, 'rgba(255, 20, 147, 0.98)');
-
-                    x.lineWidth = 10;
-                    x.strokeStyle = 'rgba(255, 20, 147, 0.55)';
-                    x.strokeText(line, c.width / 2, yy);
-
-                    x.lineWidth = 4;
-                    x.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-                    x.strokeText(line, c.width / 2, yy);
-
-                    x.fillStyle = g;
-                    x.fillText(line, c.width / 2, yy);
+                    x.lineWidth = 10; x.strokeStyle = 'rgba(255, 20, 147, 0.55)'; x.strokeText(line, c.width / 2, yy);
+                    x.lineWidth = 4;  x.strokeStyle = 'rgba(255, 255, 255, 0.35)'; x.strokeText(line, c.width / 2, yy);
+                    x.fillStyle = g; x.fillText(line, c.width / 2, yy);
                 });
-
                 return new THREE.CanvasTexture(c);
             }
 
-            const quotePlanes = [];
-            const quoteMats = [];
-            const quoteIndices = [];
+            const quotePlanes = [], quoteMats = [], quoteIndices = [];
             const MAX_QUOTES_ON_SCREEN = 8;
             const QUOTE_SPAWN_INTERVAL = 2.2;
-            let lastQuoteSpawnTime = -999;
-            let nextQuoteIndex = 0;
-            let quotesStartedOnGlobe = false;
-
+            let lastQuoteSpawnTime = -999, nextQuoteIndex = 0, quotesStartedOnGlobe = false;
             const QUOTE_Z = 0;
+
             function getViewSizeAtZ(zWorld) {
                 const distance = Math.abs(camera.position.z - zWorld);
                 const vFov = THREE.MathUtils.degToRad(camera.fov);
                 const height = 2 * Math.tan(vFov / 2) * distance;
-                const width = height * camera.aspect;
-                return { width, height };
+                return { width: height * camera.aspect, height };
             }
-
             function rand(min, max) { return min + Math.random() * (max - min); }
-
             function randomXBesideGlobe(viewWidth) {
-                const globeRadius = 7;
-                const planeHalfWidth = 8;
-                const margin = 2;
-                const minAbsX = globeRadius + planeHalfWidth + margin;
+                const minAbsX = 7 + 8 + 2;
                 const maxAbsX = Math.max(minAbsX, (viewWidth / 2) - 2);
-                const side = Math.random() < 0.5 ? -1 : 1;
-                return side * rand(minAbsX, maxAbsX);
+                return (Math.random() < 0.5 ? -1 : 1) * rand(minAbsX, maxAbsX);
             }
-
             function pickSpawnPose({ viewWidth, yBottom }, others) {
-                const backLaneChance = 0.45;
                 for (let attempt = 0; attempt < 24; attempt++) {
-                    const isBack = Math.random() < backLaneChance;
+                    const isBack = Math.random() < 0.45;
                     const z = isBack ? -12 : QUOTE_Z;
                     const x = isBack ? rand(-viewWidth * 0.45, viewWidth * 0.45) : randomXBesideGlobe(viewWidth);
                     const y = yBottom - rand(0, 8);
-
                     const ok = !others || others.every(o => {
-                        const dx = Math.abs(o.position.x - x);
-                        const dy = Math.abs(o.position.y - y);
-                        const dz = Math.abs(o.position.z - z);
+                        const dx = Math.abs(o.position.x - x), dy = Math.abs(o.position.y - y), dz = Math.abs(o.position.z - z);
                         const sameLane = dz < 6;
                         if (sameLane && dx <= 7) return false;
                         return sameLane ? (dy > 6) : (dx > 5 || dy > 4);
@@ -811,30 +793,17 @@ class BGHeart {
                 }
                 return { x: randomXBesideGlobe(viewWidth), y: yBottom - rand(0, 8), z: QUOTE_Z };
             }
-
             function spawnQuotePlane(initialYOffset = 0) {
                 const { width: vw, height: vh } = getViewSizeAtZ(QUOTE_Z);
                 const yBottom = (-vh / 2) - 6;
                 const { x, y, z } = pickSpawnPose({ viewWidth: vw, yBottom }, quotePlanes);
-
                 const idx = nextQuoteIndex % loveQuotes.length;
                 nextQuoteIndex = (nextQuoteIndex + 1) % loveQuotes.length;
-
-                const tex = createQuoteTexture(loveQuotes[idx]);
-                const mat = new THREE.MeshBasicMaterial({
-                    map: tex,
-                    transparent: true,
-                    opacity: 0,
-                    color: 0xffffff,
-                    depthWrite: false
-                });
+                const mat = new THREE.MeshBasicMaterial({ map: createQuoteTexture(loveQuotes[idx]), transparent: true, opacity: 0, color: 0xffffff, depthWrite: false });
                 const plane = new THREE.Mesh(new THREE.PlaneGeometry(16, 7), mat);
                 plane.position.set(x, y + initialYOffset, z);
                 scene.add(plane);
-
-                quotePlanes.push(plane);
-                quoteMats.push(mat);
-                quoteIndices.push(idx);
+                quotePlanes.push(plane); quoteMats.push(mat); quoteIndices.push(idx);
             }
 
             const photoGroup = new THREE.Group(); 
@@ -846,50 +815,29 @@ class BGHeart {
             let lastPhotoSpawnTime = 0;
 
             for (let i = 0; i < TOTAL_PHOTOS; i++) {
-                const url = photoUrls[i];
-                new THREE.TextureLoader().load(url, (t) => {
+                new THREE.TextureLoader().load(photoUrls[i], (t) => {
                     const aspect = t.image.width / t.image.height;
                     const width = aspect > 1 ? 6 : 4;
                     const height = width / aspect;
-                    
                     const itemGroup = new THREE.Group();
                     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0 }));
                     mesh.name = "photo_mesh";
-
                     const sMesh = new THREE.Mesh(new THREE.PlaneGeometry(width * 2.2, height * 2.2), new THREE.MeshBasicMaterial({ map: highGlowTex, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, color: 0xff0088 }));
                     sMesh.position.z = -0.2; 
-                    
                     itemGroup.add(mesh, sMesh);
                     itemGroup.position.set((Math.random() - 0.5) * 22, -35 + (i * 4.5), (Math.random() - 0.5) * 10);
-
                     photos.push({ group: itemGroup, mesh, shadow: sMesh, speed: 0.025 + Math.random() * 0.035, isZoomed: false, width, height });
                     photoGroup.add(itemGroup);
                 });
             }
 
-            let isInsideGlobe = false;
-            const INSIDE_GLOBE_FOV = 150;
-            const OUTSIDE_GLOBE_FOV = 75;
-            const INSIDE_GLOBE_Z = 0;
-            const OUTSIDE_GLOBE_Z = 22;
-            let globeTransitionTime = 0;
-            const GLOBE_TRANSITION_DURATION = 0.8;
-
+            // Photo clicks (gallery only; globe navigation is via OrbitControls drag outside)
             container.addEventListener('mousedown', (e) => {
-                if (phase !== "gallery" && phase !== "globe") return;
-                
-                mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1; mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
-                raycaster.setFromCamera(mouse3D, camera);
-                
-                // Check for globe click
-                const globeIntersects = raycaster.intersectObject(globe);
-                if (globeIntersects.length > 0 && phase === "globe") {
-                    toggleGlobeInsideView();
-                    return;
-                }
-                
-                // Check for photo clicks
+                if (isInsideGlobe) return; // inside uses its own drag handler
                 if (phase !== "gallery") return;
+                mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse3D, camera);
                 const intersects = raycaster.intersectObjects(photoGroup.children, true);
                 if (intersects.length > 0) {
                     const hit = intersects.find(o => o.object.name === "photo_mesh");
@@ -901,53 +849,6 @@ class BGHeart {
                 }
             });
 
-            function toggleGlobeInsideView() {
-                isInsideGlobe = !isInsideGlobe;
-                globeTransitionTime = 0;
-            }
-
-            function updateGlobeInsideView() {
-                if (isInsideGlobe) {
-                    globeTransitionTime += clock.getDelta();
-                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
-                    
-                    // Smooth camera Z position
-                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
-                    
-                    // Smooth FOV transition
-                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
-                    camera.fov = targetFov;
-                    
-                    // Transition globe material side at midpoint
-                    if (progress >= 0.5 && globeMat.side === THREE.FrontSide) {
-                        globeMat.side = THREE.BackSide;
-                        globeMat.needsUpdate = true;
-                    }
-                } else if (!isInsideGlobe && globeTransitionTime > 0) {
-                    globeTransitionTime -= clock.getDelta();
-                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
-                    
-                    // Smooth camera Z position back
-                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
-                    
-                    // Smooth FOV transition back
-                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
-                    camera.fov = targetFov;
-                    
-                    // Transition globe material side back at midpoint
-                    if (progress <= 0.5 && globeMat.side === THREE.BackSide) {
-                        globeMat.side = THREE.FrontSide;
-                        globeMat.needsUpdate = true;
-                    }
-                    
-                    if (globeTransitionTime <= 0) {
-                        globeTransitionTime = 0;
-                    }
-                }
-                
-                camera.updateProjectionMatrix();
-            }
-
             let transitionStartTime = null;
             const TRANSITION_DURATION = 1.8;
             
@@ -955,7 +856,7 @@ class BGHeart {
                 phase = "transition";
                 transitionStartTime = clock.getElapsedTime();
                 lastPhotoSpawnTime = clock.getElapsedTime();
-                photos.forEach((p, i) => {
+                photos.forEach((p) => {
                     p.group.position.y = -35;
                     p.group.position.x = (Math.random() - 0.5) * 22;
                     p.group.position.z = (Math.random() - 0.5) * 10;
@@ -963,20 +864,56 @@ class BGHeart {
                     p.shadow.material.opacity = 0;
                 });
                 photoGroup.visible = true;
-                document.getElementById('ui-layer').style.display = "none"; 
+                document.getElementById('ui-layer').style.display = "none";
+                // Also hide peek UI if it was open
+                document.getElementById('inside-close-btn').classList.remove('visible');
+                document.getElementById('inside-hint').classList.remove('visible');
+                isInsideGlobe = false;
             };
-            scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-            camera.position.z = 22;
 
+            scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+            camera.position.z = CAM_Z_OUTSIDE;
+
+            /* ════════════ ANIMATE LOOP ════════════ */
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
+
+                /* ── Smooth inside-globe transition ── */
+                insideProgress = isInsideGlobe
+                    ? Math.min(1, insideProgress + delta * INSIDE_SPEED)
+                    : Math.max(0, insideProgress - delta * INSIDE_SPEED);
+
+                // Ease in-out quad
+                const ease = insideProgress < 0.5
+                    ? 2 * insideProgress * insideProgress
+                    : 1 - Math.pow(-2 * insideProgress + 2, 2) / 2;
+
+                // Smoothly drive FOV and camera Z
+                camera.fov = FOV_OUTSIDE + (FOV_INSIDE - FOV_OUTSIDE) * ease;
+                camera.position.z = CAM_Z_OUTSIDE + (CAM_Z_INSIDE - CAM_Z_OUTSIDE) * ease;
+                camera.updateProjectionMatrix();
+
+                // Switch globe material side at the midpoint of transition
+                if (ease >= 0.5 && globeMat.side === THREE.FrontSide) {
+                    globeMat.side = THREE.BackSide;
+                    globeMat.needsUpdate = true;
+                } else if (ease < 0.5 && globeMat.side === THREE.BackSide) {
+                    globeMat.side = THREE.FrontSide;
+                    globeMat.needsUpdate = true;
+                }
+
+                // OrbitControls active only when outside and in globe/gallery phase
+                controls.enabled = !isInsideGlobe && (phase === "globe" || phase === "gallery");
                 controls.update();
-                
-                // Update globe inside/outside view transition
-                updateGlobeInsideView();
-                
+
+                // Inertial drag momentum decay inside
+                if (isInsideGlobe && !isDragging && Math.abs(globeVelocityY) > 0.0001) {
+                    globe.rotation.y += globeVelocityY;
+                    globeVelocityY *= 0.92; // friction
+                }
+
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
                     controls.target.y = THREE.MathUtils.clamp(controls.target.y, -PAN_LIMIT, PAN_LIMIT);
@@ -984,7 +921,6 @@ class BGHeart {
                 }
                 
                 bgMat.opacity = 0.8;
-
                 {
                     const pos = bgGeo.attributes.position.array;
                     for (let i = 0; i < bgCount; i++) {
@@ -992,188 +928,110 @@ class BGHeart {
                         pos[ix]     += bgVel[ix]     * (delta * 60);
                         pos[ix + 1] += bgVel[ix + 1] * (delta * 60);
                         pos[ix + 2] += bgVel[ix + 2] * (delta * 60);
-
-                        if (pos[ix] > bgBounds / 2) pos[ix] = -bgBounds / 2;
-                        if (pos[ix] < -bgBounds / 2) pos[ix] = bgBounds / 2;
-                        if (pos[ix + 1] > bgBounds / 2) pos[ix + 1] = -bgBounds / 2;
-                        if (pos[ix + 1] < -bgBounds / 2) pos[ix + 1] = bgBounds / 2;
-                        if (pos[ix + 2] > bgBounds / 2) pos[ix + 2] = -bgBounds / 2;
-                        if (pos[ix + 2] < -bgBounds / 2) pos[ix + 2] = bgBounds / 2;
+                        if (pos[ix] > bgBounds/2) pos[ix] = -bgBounds/2;
+                        if (pos[ix] < -bgBounds/2) pos[ix] = bgBounds/2;
+                        if (pos[ix+1] > bgBounds/2) pos[ix+1] = -bgBounds/2;
+                        if (pos[ix+1] < -bgBounds/2) pos[ix+1] = bgBounds/2;
+                        if (pos[ix+2] > bgBounds/2) pos[ix+2] = -bgBounds/2;
+                        if (pos[ix+2] < -bgBounds/2) pos[ix+2] = bgBounds/2;
                     }
                     bgGeo.attributes.position.needsUpdate = true;
                 }
 
+                /* ── Intro phase ── */
                 if (phase === "intro") {
-                    const fadeInEnd = 1.5;
-                    const explodeStart = 5.0;
-                    const explodeDuration = 3.5;
+                    const fadeInEnd = 1.5, explodeStart = 5.0, explodeDuration = 3.5;
                     const introEnd = explodeStart + explodeDuration;
-                    
-                    if (time >= explodeStart && time <= introEnd) {
-                        hGroup.rotation.y += 0.1;
-                    } else {
-                        hGroup.rotation.y += 0.04;
-                    }
+                    hGroup.rotation.y += (time >= explodeStart && time <= introEnd) ? 0.1 : 0.04;
                     hGroupMirror.rotation.y = hGroup.rotation.y;
-
                     let introOpacity = 1.0;
-
-                    if (time < fadeInEnd) {
-                        introOpacity = THREE.MathUtils.clamp(time / fadeInEnd, 0, 1);
-                    }
-                    else if (time >= fadeInEnd && time < explodeStart) {
-                        introOpacity = 1.0;
-                    }
-                    else if (time >= explodeStart && time <= introEnd) {
-                        const tOut = THREE.MathUtils.clamp((time - explodeStart) / explodeDuration, 0, 1);
-                        introOpacity = 1.0 - tOut;
-                    } else {
-                        introOpacity = 0.0;
-                    }
-
-                    hMat.opacity = introOpacity;
-                    tMatF.opacity = introOpacity;
-                    tMatB.opacity = introOpacity;
-
+                    if (time < fadeInEnd) introOpacity = THREE.MathUtils.clamp(time / fadeInEnd, 0, 1);
+                    else if (time >= explodeStart && time <= introEnd) introOpacity = 1.0 - THREE.MathUtils.clamp((time - explodeStart) / explodeDuration, 0, 1);
+                    else if (time >= introEnd) introOpacity = 0.0;
+                    hMat.opacity = tMatF.opacity = tMatB.opacity = introOpacity;
                     const hA = hGeo.attributes.position.array;
                     if (time < explodeStart) {
-                        for (let i = 0; i < hCount; i++) {
-                            hA[i*3]     = hBasePos[i*3];
-                            hA[i*3 + 1] = hBasePos[i*3 + 1];
-                            hA[i*3 + 2] = hBasePos[i*3 + 2];
-                        }
-                        hGeo.attributes.position.needsUpdate = true;
-                    } else if (time >= explodeStart && time <= introEnd) {
+                        for (let i = 0; i < hCount; i++) { hA[i*3]=hBasePos[i*3]; hA[i*3+1]=hBasePos[i*3+1]; hA[i*3+2]=hBasePos[i*3+2]; }
+                    } else if (time <= introEnd) {
                         const tOut = THREE.MathUtils.clamp((time - explodeStart) / explodeDuration, 0, 1);
-                        const easeOutQuad = 1 - (1 - tOut) * (1 - tOut);
-                        const spreadFactor = 1.5;
+                        const eq = 1 - (1 - tOut) * (1 - tOut);
                         for (let i = 0; i < hCount; i++) {
-                            hA[i*3]     = hBasePos[i*3]     + hVel[i*3]     * easeOutQuad * spreadFactor;
-                            hA[i*3 + 1] = hBasePos[i*3 + 1] + hVel[i*3 + 1] * easeOutQuad * spreadFactor;
-                            hA[i*3 + 2] = hBasePos[i*3 + 2] + hVel[i*3 + 2] * easeOutQuad * spreadFactor;
+                            hA[i*3]=hBasePos[i*3]+hVel[i*3]*eq*1.5;
+                            hA[i*3+1]=hBasePos[i*3+1]+hVel[i*3+1]*eq*1.5;
+                            hA[i*3+2]=hBasePos[i*3+2]+hVel[i*3+2]*eq*1.5;
                         }
-                        hGeo.attributes.position.needsUpdate = true;
                     }
-
+                    hGeo.attributes.position.needsUpdate = true;
                     if (time >= introEnd) {
                         phase = "globe";
-                        hGroup.visible = false;
-                        hGroupMirror.visible = false;
-                        document.getElementById('ui-layer').style.display = "block";
+                        hGroup.visible = false; hGroupMirror.visible = false;
+                        // Show as flex row so both buttons appear side by side
+                        document.getElementById('ui-layer').style.display = "flex";
                         controls.enabled = true;
                     }
                 }
 
-                if (phase === "transition") {
-                    const transitionElapsed = time - transitionStartTime;
-                    const transitionProgress = THREE.MathUtils.clamp(transitionElapsed / TRANSITION_DURATION, 0, 1);
-                    
-                    globeMat.opacity = Math.max(0, 1 - transitionProgress * 1.2);
-                    fireMat.opacity = transitionProgress * 0.8;
+                /* Auto-rotate globe only when outside and in globe phase */
+                if ((phase === "globe" || phase === "transition") && !isInsideGlobe) {
                     globe.rotation.y += 0.005;
-                    
-                    if (transitionProgress >= 1) {
-                        phase = "gallery";
-                    }
+                }
+
+                /* ── Transition phase ── */
+                if (phase === "transition") {
+                    const tp = THREE.MathUtils.clamp((time - transitionStartTime) / TRANSITION_DURATION, 0, 1);
+                    globeMat.opacity = Math.max(0, 1 - tp * 1.2);
+                    fireMat.opacity = tp * 0.8;
+                    if (tp >= 1) phase = "gallery";
                 } else if (phase === "globe" && globeMat.opacity < 1) {
                     globeMat.opacity += 0.02;
                 }
-                
-                if (phase === "globe" || phase === "gallery" || phase === "transition") globe.rotation.y += 0.005;
 
+                /* ── Globe phase: floating quotes ── */
                 if (phase === "globe") {
                     const { width: vw, height: vh } = getViewSizeAtZ(QUOTE_Z);
-                    const yBottom = (-vh / 2) - 6;
-                    const yTop = (vh / 2) + 6;
-
+                    const yBottom = (-vh / 2) - 6, yTop = (vh / 2) + 6;
                     if (!quotesStartedOnGlobe && globeMat.opacity > 0.05) {
                         quotesStartedOnGlobe = true;
                         lastQuoteSpawnTime = time - QUOTE_SPAWN_INTERVAL;
-                        for (let i = quotePlanes.length - 1; i >= 0; i--) {
-                            scene.remove(quotePlanes[i]);
-                            if (quoteMats[i].map) quoteMats[i].map.dispose();
-                            quoteMats[i].dispose();
-                        }
-                        quotePlanes.length = 0;
-                        quoteMats.length = 0;
-                        quoteIndices.length = 0;
-                        spawnQuotePlane(0);
-                        spawnQuotePlane(-6);
-                        spawnQuotePlane(-12);
+                        for (let i = quotePlanes.length - 1; i >= 0; i--) { scene.remove(quotePlanes[i]); if (quoteMats[i].map) quoteMats[i].map.dispose(); quoteMats[i].dispose(); }
+                        quotePlanes.length = quoteMats.length = quoteIndices.length = 0;
+                        spawnQuotePlane(0); spawnQuotePlane(-6); spawnQuotePlane(-12);
                     }
-
                     if (time - lastQuoteSpawnTime >= QUOTE_SPAWN_INTERVAL && quotePlanes.length < MAX_QUOTES_ON_SCREEN) {
-                        spawnQuotePlane(0);
-                        lastQuoteSpawnTime = time;
+                        spawnQuotePlane(0); lastQuoteSpawnTime = time;
                     }
-
                     for (let i = quotePlanes.length - 1; i >= 0; i--) {
-                        const plane = quotePlanes[i];
-                        const mat = quoteMats[i];
-
+                        const plane = quotePlanes[i]; const mat = quoteMats[i];
                         plane.position.y += 0.09;
-
                         if (plane.position.y > yTop + 4) {
-                            scene.remove(plane);
-                            if (mat.map) mat.map.dispose();
-                            mat.dispose();
-                            quotePlanes.splice(i, 1);
-                            quoteMats.splice(i, 1);
-                            quoteIndices.splice(i, 1);
-                            continue;
+                            scene.remove(plane); if (mat.map) mat.map.dispose(); mat.dispose();
+                            quotePlanes.splice(i, 1); quoteMats.splice(i, 1); quoteIndices.splice(i, 1); continue;
                         }
-
                         const y = plane.position.y;
-                        let qOpacity = 0;
-                        const fadeInEnd = yBottom + 14;
-                        const fadeOutStart = yTop - 14;
-
-                        if (y >= yBottom && y <= fadeInEnd) {
-                            qOpacity = THREE.MathUtils.smoothstep(y, yBottom, fadeInEnd) * 1.0;
-                        }
-                        else if (y > fadeInEnd && y < fadeOutStart) {
-                            qOpacity = 1.0;
-                        }
-                        else if (y >= fadeOutStart && y <= yTop) {
-                            qOpacity = (1 - THREE.MathUtils.smoothstep(y, fadeOutStart, yTop)) * 1.0;
-                        }
-                        mat.opacity = qOpacity;
-
+                        const fadeInEnd = yBottom + 14, fadeOutStart = yTop - 14;
+                        mat.opacity = y < yBottom ? 0 : y <= fadeInEnd ? THREE.MathUtils.smoothstep(y, yBottom, fadeInEnd)
+                            : y < fadeOutStart ? 1 : y <= yTop ? (1 - THREE.MathUtils.smoothstep(y, fadeOutStart, yTop)) : 0;
                         plane.quaternion.copy(camera.quaternion);
                     }
-                }
-                else if (phase === "transition" || phase === "gallery") {
-                    for (let i = quotePlanes.length - 1; i >= 0; i--) {
-                        scene.remove(quotePlanes[i]);
-                        if (quoteMats[i].map) quoteMats[i].map.dispose();
-                        quoteMats[i].dispose();
-                    }
-                    quotePlanes.length = 0;
-                    quoteMats.length = 0;
-                    quoteIndices.length = 0;
+                } else if (phase === "transition" || phase === "gallery") {
+                    for (let i = quotePlanes.length - 1; i >= 0; i--) { scene.remove(quotePlanes[i]); if (quoteMats[i].map) quoteMats[i].map.dispose(); quoteMats[i].dispose(); }
+                    quotePlanes.length = quoteMats.length = quoteIndices.length = 0;
                 }
 
+                /* ── Gallery phase ── */
                 if (phase === "gallery") {
                     if (globeMat.opacity > 0) globeMat.opacity -= 0.05; else globe.visible = false;
                     fireMat.opacity = THREE.MathUtils.lerp(fireMat.opacity, 0.8, 0.01);
                     const fPos = fireGeo.attributes.position.array;
-                    for(let i=0; i<fireCount; i++){ fPos[i*3+1] += fireSpeeds[i]; if(fPos[i*3+1] > 25) { fPos[i*3+1] = -30; fPos[i*3] = (Math.random()-0.5)*50; } }
+                    for(let i=0; i<fireCount; i++) { fPos[i*3+1] += fireSpeeds[i]; if(fPos[i*3+1] > 25) { fPos[i*3+1] = -30; fPos[i*3] = (Math.random()-0.5)*50; } }
                     fireGeo.attributes.position.needsUpdate = true;
-
-                    function checkOverlap(x, y, z, width, height) {
-                        const MIN_DISTANCE = 6;
+                    function checkOverlap(x, y, z) {
                         for (let p of photos) {
-                            const dx = x - p.group.position.x;
-                            const dy = y - p.group.position.y;
-                            const dz = z - p.group.position.z;
-                            const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                            if (distance < MIN_DISTANCE) {
-                                return true;
-                            }
+                            const dx = x - p.group.position.x, dy = y - p.group.position.y, dz = z - p.group.position.z;
+                            if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 6) return true;
                         }
                         return false;
                     }
-
                     photos.forEach(p => {
                         if (p.isZoomed) {
                             p.mesh.material.opacity = THREE.MathUtils.lerp(p.mesh.material.opacity, 1, 0.1);
@@ -1183,36 +1041,30 @@ class BGHeart {
                             p.group.position.y += p.speed;
                             p.group.quaternion.copy(camera.quaternion);
                             const y = p.group.position.y;
-                            let targetOpacity = 1;
-                            if (y < -20) targetOpacity = THREE.MathUtils.smoothstep(y, -35, -20);
-                            else if (y > 10) targetOpacity = 1 - THREE.MathUtils.smoothstep(y, 10, 25);
-                            p.mesh.material.opacity = targetOpacity;
-                            
-                            if (p.group.position.y > 25) {
-                                if (time - lastPhotoSpawnTime >= MIN_SPAWN_INTERVAL) {
-                                    let newX, newY = -35;
-                                    let attempts = 0;
-                                    do {
-                                        newX = (Math.random() - 0.5) * 22;
-                                        attempts++;
-                                    } while (checkOverlap(newX, newY, 0, p.width, p.height) && attempts < 5);
-                                    
-                                    if (attempts >= 5 || !checkOverlap(newX, newY, 0, p.width, p.height)) {
-                                        p.group.position.y = newY;
-                                        p.group.position.x = newX;
-                                        p.group.position.z = (Math.random() - 0.5) * 10;
-                                        p.mesh.material.opacity = 0;
-                                        lastPhotoSpawnTime = time;
-                                    }
+                            p.mesh.material.opacity = y < -20 ? THREE.MathUtils.smoothstep(y, -35, -20)
+                                : y > 10 ? 1 - THREE.MathUtils.smoothstep(y, 10, 25) : 1;
+                            if (p.group.position.y > 25 && time - lastPhotoSpawnTime >= MIN_SPAWN_INTERVAL) {
+                                let newX, attempts = 0;
+                                do { newX = (Math.random() - 0.5) * 22; attempts++; } while (checkOverlap(newX, -35, 0) && attempts < 5);
+                                if (attempts >= 5 || !checkOverlap(newX, -35, 0)) {
+                                    p.group.position.set(newX, -35, (Math.random() - 0.5) * 10);
+                                    p.mesh.material.opacity = 0;
+                                    lastPhotoSpawnTime = time;
                                 }
                             }
                         }
                         p.shadow.material.opacity = (0.7 + Math.sin(time * 3) * 0.3) * p.mesh.material.opacity;
                     });
                 }
+
                 renderer.render(scene, camera);
             }
-            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
             animate();
         }
     </script>
