@@ -688,7 +688,7 @@ class BGHeart {
                     globeTex.needsUpdate = true;
                 };
             });
-            const globeMat = new THREE.MeshStandardMaterial({ map: globeTex, transparent: true, opacity: 0 });
+            const globeMat = new THREE.MeshStandardMaterial({ map: globeTex, transparent: true, opacity: 0, side: THREE.FrontSide });
             const globe = new THREE.Mesh(new THREE.SphereGeometry(11, 128, 128), globeMat);
             scene.add(globe);
 
@@ -867,14 +867,15 @@ class BGHeart {
                 });
             }
 
-            container.addEventListener('mousedown', (e) => {
-                // Handle globe zoom overlay close
-                const overlay = document.getElementById('globe-zoom-overlay');
-                if (overlay.classList.contains('active') && e.target === overlay) {
-                    overlay.classList.remove('active');
-                    return;
-                }
+            let isInsideGlobe = false;
+            const INSIDE_GLOBE_FOV = 120;
+            const OUTSIDE_GLOBE_FOV = 75;
+            const INSIDE_GLOBE_Z = 0.5;
+            const OUTSIDE_GLOBE_Z = 22;
+            let globeTransitionTime = 0;
+            const GLOBE_TRANSITION_DURATION = 0.8;
 
+            container.addEventListener('mousedown', (e) => {
                 if (phase !== "gallery" && phase !== "globe") return;
                 
                 mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1; mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -883,7 +884,7 @@ class BGHeart {
                 // Check for globe click
                 const globeIntersects = raycaster.intersectObject(globe);
                 if (globeIntersects.length > 0 && phase === "globe") {
-                    showGlobeZoom();
+                    toggleGlobeInsideView();
                     return;
                 }
                 
@@ -900,25 +901,52 @@ class BGHeart {
                 }
             });
 
-            function showGlobeZoom() {
-                const overlay = document.getElementById('globe-zoom-overlay');
-                const grid = document.getElementById('globe-zoom-grid');
-                grid.innerHTML = '';
-                
-                globeUrls.forEach((url, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'globe-zoom-item';
-                    item.innerHTML = `<img src="${url}" alt="Globe Image ${index + 1}" loading="lazy">`;
-                    grid.appendChild(item);
-                });
-                
-                overlay.classList.add('active');
+            function toggleGlobeInsideView() {
+                isInsideGlobe = !isInsideGlobe;
+                globeTransitionTime = 0;
             }
 
-            document.getElementById('globe-zoom-close').addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.getElementById('globe-zoom-overlay').classList.remove('active');
-            });
+            function updateGlobeInsideView() {
+                if (isInsideGlobe) {
+                    globeTransitionTime += clock.getDelta();
+                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
+                    
+                    // Smooth camera Z position
+                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
+                    
+                    // Smooth FOV transition
+                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
+                    camera.fov = targetFov;
+                    
+                    // Transition globe material side at midpoint
+                    if (progress >= 0.5 && globeMat.side === THREE.FrontSide) {
+                        globeMat.side = THREE.BackSide;
+                        globeMat.needsUpdate = true;
+                    }
+                } else if (!isInsideGlobe && globeTransitionTime > 0) {
+                    globeTransitionTime -= clock.getDelta();
+                    const progress = Math.min(globeTransitionTime / GLOBE_TRANSITION_DURATION, 1);
+                    
+                    // Smooth camera Z position back
+                    camera.position.z = OUTSIDE_GLOBE_Z - (OUTSIDE_GLOBE_Z - INSIDE_GLOBE_Z) * progress;
+                    
+                    // Smooth FOV transition back
+                    const targetFov = OUTSIDE_GLOBE_FOV + (INSIDE_GLOBE_FOV - OUTSIDE_GLOBE_FOV) * progress;
+                    camera.fov = targetFov;
+                    
+                    // Transition globe material side back at midpoint
+                    if (progress <= 0.5 && globeMat.side === THREE.BackSide) {
+                        globeMat.side = THREE.FrontSide;
+                        globeMat.needsUpdate = true;
+                    }
+                    
+                    if (globeTransitionTime <= 0) {
+                        globeTransitionTime = 0;
+                    }
+                }
+                
+                camera.updateProjectionMatrix();
+            }
 
             let transitionStartTime = null;
             const TRANSITION_DURATION = 1.8;
@@ -945,6 +973,9 @@ class BGHeart {
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
                 controls.update();
+                
+                // Update globe inside/outside view transition
+                updateGlobeInsideView();
                 
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
