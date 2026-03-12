@@ -233,7 +233,6 @@
         document.addEventListener('cut', function(e) { e.preventDefault(); return false; });
         document.addEventListener('paste', function(e) { e.preventDefault(); return false; });
         document.addEventListener('selectstart', function(e) { e.preventDefault(); return false; });
-        document.addEventListener('wheel', function(e) { e.preventDefault(); return false; }, { passive: false });
 
         const CORRECT_CODE = "021226";
         let currentInput = "";
@@ -491,29 +490,20 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // UPDATED CONTROLS: Left click = strictly horizontal rotation. Right click = Pan Space.
+            // Exactly replicating the navigation settings from your reference file
             const controls = new OrbitControls(camera, renderer.domElement);
-            controls.enableDamping = true;
+            controls.enableDamping = true; 
             controls.dampingFactor = 0.07;
             controls.enabled = false;
             
-            // Lock vertical axis completely so Left-Click ONLY navigates horizontally
-            controls.minPolarAngle = Math.PI / 2;
+            controls.minPolarAngle = Math.PI / 2; 
             controls.maxPolarAngle = Math.PI / 2;
+            controls.minDistance = 15; 
+            controls.maxDistance = 35;
             
-            controls.enablePan = true;
-            controls.autoRotate = false;
-            controls.enableZoom = true; // Still allows scroll wheel to zoom (Dolly) 
-            
-            controls.minDistance = 10;
-            controls.maxDistance = 50;
-
-            // Strict mouse mapping
-            controls.mouseButtons = {
-                LEFT: THREE.MOUSE.ROTATE,    // Strictly horizontal rotation
-                MIDDLE: THREE.MOUSE.DOLLY,   // Middle click zooms
-                RIGHT: THREE.MOUSE.PAN       // Right click pans the whole space (up/down/left/right)
-            };
+            controls.enablePan = true; 
+            controls.autoRotate = false; 
+            controls.enableZoom = true;
             
             const PAN_LIMIT = 15;
 
@@ -619,7 +609,6 @@
             const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
             scene.add(new THREE.Points(bgGeo, bgMat));
 
-            /* ── UPDATED: High-res mosaic globe texture matching reference image ── */
             const MCOLS = 8, MROWS = 5;
             const MC_W = 4096, MC_H = 2048;
             const CELL_W = Math.floor(MC_W / MCOLS);
@@ -629,7 +618,6 @@
             mC.width = MC_W; mC.height = MC_H;
             const mX = mC.getContext('2d');
             
-            // Dark empty background between photos
             mX.fillStyle = '#030005';
             mX.fillRect(0, 0, MC_W, MC_H);
 
@@ -647,16 +635,13 @@
                                 const cx = col * CELL_W + CELL_W / 2;
                                 const cy = row * CELL_H + CELL_H / 2;
                                 
-                                // Scale down photos slightly to leave dark gaps between them
                                 const dw = CELL_W * 0.85; 
                                 const dh = CELL_H * 0.85;
 
                                 mX.save();
                                 mX.translate(cx, cy);
-                                // Randomize rotation to create the scattered "photo collage" wall look
                                 mX.rotate((Math.random() - 0.5) * 0.35);
                                 
-                                // Optional subtle border
                                 mX.fillStyle = 'rgba(255, 255, 255, 0.05)';
                                 mX.fillRect(-dw/2 - 4, -dh/2 - 4, dw + 8, dh + 8);
                                 
@@ -685,14 +670,13 @@
             let insideProgress = 0;         
             const INSIDE_SPEED = 1.5;       
             const FOV_OUTSIDE = 75;
-            const FOV_INSIDE  = 140;        // Extreme wide fisheye to match reference exactly
+            const FOV_INSIDE  = 140;        
             const CAM_Z_OUTSIDE = 22;
-            const CAM_Z_INSIDE  = 0;        // Dead-centre to prevent sphere clipping while spinning
+            const CAM_Z_INSIDE  = 0;        
 
-            /* Inside-globe drag state — STRICTLY HORIZONTAL NOW */
             let isDragging = false;
             let dragLastX = 0;
-            let globeVelocityY = 0;         // Momentum for inertial horizontal drag
+            let globeVelocityY = 0;         
 
             renderer.domElement.addEventListener('mousedown', e => {
                 if (!isInsideGlobe) return;
@@ -706,7 +690,6 @@
                 const dx = e.clientX - dragLastX;
                 globeVelocityY = dx * 0.006;
                 globe.rotation.y += globeVelocityY;
-                // Vertical tilt completely removed to enforce horizontal navigation only
                 dragLastX = e.clientX;
             });
 
