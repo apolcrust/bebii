@@ -233,7 +233,6 @@
         document.addEventListener('cut', function(e) { e.preventDefault(); return false; });
         document.addEventListener('paste', function(e) { e.preventDefault(); return false; });
         document.addEventListener('selectstart', function(e) { e.preventDefault(); return false; });
-        document.addEventListener('wheel', function(e) { e.preventDefault(); return false; }, { passive: false });
 
         const CORRECT_CODE = "021226";
         let currentInput = "";
@@ -491,7 +490,7 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // OrbitControls — left-click rotates globe L/R only; right-click zooms and pans the whole space
+            // Exactly replicating the navigation settings from your reference file
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true; 
             controls.dampingFactor = 0.07;
@@ -499,17 +498,12 @@
             
             controls.minPolarAngle = Math.PI / 2; 
             controls.maxPolarAngle = Math.PI / 2;
-            controls.enablePan = true;              // enable panning for right-click navigation
-            controls.autoRotate = false;
-            controls.enableZoom = false;            // disable scroll wheel zoom (use right-click DOLLY instead)
-            controls.minDistance = 10;              // can't zoom closer than radius+buffer
-            controls.maxDistance = 50;              // stays within the visible particle field
-            // Explicit mouse button mapping — left-click rotates L/R, right-click zooms and pans
-            controls.mouseButtons = {
-                LEFT:   THREE.MOUSE.ROTATE,        // left-click: horizontal rotation only
-                MIDDLE: null,                       // middle-click: disabled
-                RIGHT:  THREE.MOUSE.DOLLY           // right-click: zoom (dolly) + pan for full space navigation
-            };
+            controls.minDistance = 10; 
+            controls.maxDistance = 100;
+            
+            controls.enablePan = true; 
+            controls.autoRotate = false; 
+            controls.enableZoom = true;
             
             const PAN_LIMIT = 15;
 
@@ -628,7 +622,10 @@
             mX.fillRect(0, 0, MC_W, MC_H);
 
             const globeTex = new THREE.CanvasTexture(mC);
-            globeTex.wrapS = THREE.RepeatWrapping;
+            globeTex.wrapS = THREE.ClampToEdgeWrapping;
+            globeTex.wrapT = THREE.ClampToEdgeWrapping;
+            globeTex.magFilter = THREE.LinearFilter;
+            globeTex.minFilter = THREE.LinearMipmapLinearFilter;
             globeTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
             globeUrls.forEach((url, imgIdx) => {
@@ -919,8 +916,11 @@
                     }
                 }
 
-                // Keep globe centered at origin during zoom
-                controls.target.set(0, 0, 0);
+                if (controls.target) {
+                    controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
+                    controls.target.y = THREE.MathUtils.clamp(controls.target.y, -PAN_LIMIT, PAN_LIMIT);
+                    controls.target.z = THREE.MathUtils.clamp(controls.target.z, -PAN_LIMIT, PAN_LIMIT);
+                }
                 
                 bgMat.opacity = 0.8;
                 {
