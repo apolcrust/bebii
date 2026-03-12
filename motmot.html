@@ -92,7 +92,6 @@
         .shake { animation: shake 0.4s ease-in-out; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-8px); } 80% { transform: translateX(8px); } }
 
-        /* ── Bottom button row: flex so both buttons sit side-by-side ── */
         #ui-layer {
             position: absolute;
             bottom: 40px;
@@ -106,7 +105,6 @@
             white-space: nowrap;
         }
 
-        /* Shared style for both bottom buttons */
         #click-btn, #peek-btn {
             padding: 15px 40px; font-size: 16px; font-weight: bold; color: white;
             background: rgba(255, 0, 136, 0.1); border: 1px solid rgba(255, 0, 136, 0.6);
@@ -127,7 +125,6 @@
             cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="wideGlow"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="tightGlow"/><feMerge><feMergeNode in="wideGlow"/><feMergeNode in="tightGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23glow2)" opacity="0.99">I love youuuu</text></svg>') 55 20, auto;
         }
 
-        /* ── Inside-globe X close button (top-right, only visible when peeking) ── */
         #inside-close-btn {
             position: fixed;
             top: 30px; right: 40px;
@@ -152,7 +149,6 @@
             box-shadow: 0 0 28px rgba(255, 0, 136, 0.7);
             transform: scale(1.1);
         }
-        /* Hint label beside the X */
         #inside-hint {
             position: fixed;
             top: 42px; right: 102px;
@@ -202,13 +198,11 @@
 
     <div id="three-canvas-container"></div>
 
-    <!-- Bottom buttons -->
     <div id="ui-layer">
         <button id="click-btn">View More</button>
         <button id="peek-btn">✦ Peek Inside</button>
     </div>
 
-    <!-- Inside-globe close controls -->
     <span id="inside-hint">drag to explore</span>
     <button id="inside-close-btn">✕</button>
 
@@ -497,23 +491,28 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // OrbitControls — left-click rotates globe L/R only; right-click zooms and pans the whole space
+            // UPDATED CONTROLS: Left click = strictly horizontal rotation. Right click = Pan Space.
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.07;
             controls.enabled = false;
-            controls.minPolarAngle = Math.PI / 2;   // lock vertical so left-drag only orbits L/R
+            
+            // Lock vertical axis completely so Left-Click ONLY navigates horizontally
+            controls.minPolarAngle = Math.PI / 2;
             controls.maxPolarAngle = Math.PI / 2;
-            controls.enablePan = true;              // enable panning for right-click navigation
+            
+            controls.enablePan = true;
             controls.autoRotate = false;
-            controls.enableZoom = false;            // disable scroll wheel zoom (use right-click DOLLY instead)
-            controls.minDistance = 10;              // can't zoom closer than radius+buffer
-            controls.maxDistance = 50;              // stays within the visible particle field
-            // Explicit mouse button mapping — left-click rotates L/R, right-click zooms and pans
+            controls.enableZoom = true; // Still allows scroll wheel to zoom (Dolly) 
+            
+            controls.minDistance = 10;
+            controls.maxDistance = 50;
+
+            // Strict mouse mapping
             controls.mouseButtons = {
-                LEFT:   THREE.MOUSE.ROTATE,        // left-click: horizontal rotation only
-                MIDDLE: null,                       // middle-click: disabled
-                RIGHT:  THREE.MOUSE.DOLLY           // right-click: zoom (dolly) + pan for full space navigation
+                LEFT: THREE.MOUSE.ROTATE,    // Strictly horizontal rotation
+                MIDDLE: THREE.MOUSE.DOLLY,   // Middle click zooms
+                RIGHT: THREE.MOUSE.PAN       // Right click pans the whole space (up/down/left/right)
             };
             
             const PAN_LIMIT = 15;
@@ -620,25 +619,22 @@
             const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
             scene.add(new THREE.Points(bgGeo, bgMat));
 
-            /* ── High-res mosaic globe texture ──
-               4096 × 2048 canvas, 9 cols × 5 rows = 45 cells.
-               Each of the 15 images fills exactly 3 cells (cell index % 15 === imgIndex).
-               Cell size: ~455 × 409 px → photos appear large and sharp.            */
-            const MCOLS = 9, MROWS = 5;
+            /* ── UPDATED: High-res mosaic globe texture matching reference image ── */
+            const MCOLS = 8, MROWS = 5;
             const MC_W = 4096, MC_H = 2048;
             const CELL_W = Math.floor(MC_W / MCOLS);
             const CELL_H = Math.floor(MC_H / MROWS);
-            const GAP = 5; // px gap between tiles
 
             const mC = document.createElement('canvas');
             mC.width = MC_W; mC.height = MC_H;
             const mX = mC.getContext('2d');
-            mX.fillStyle = '#060109';
+            
+            // Dark empty background between photos
+            mX.fillStyle = '#030005';
             mX.fillRect(0, 0, MC_W, MC_H);
 
             const globeTex = new THREE.CanvasTexture(mC);
             globeTex.wrapS = THREE.RepeatWrapping;
-            // Maximum anisotropy for crisp texture at oblique angles
             globeTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
             globeUrls.forEach((url, imgIdx) => {
@@ -648,13 +644,23 @@
                         for (let col = 0; col < MCOLS; col++) {
                             const cellIdx = row * MCOLS + col;
                             if (cellIdx % 15 === imgIdx) {
-                                const dx = col * CELL_W + GAP;
-                                const dy = row * CELL_H + GAP;
-                                const dw = CELL_W - GAP * 2;
-                                const dh = CELL_H - GAP * 2;
-                                // Draw with slight brightness boost via composite
+                                const cx = col * CELL_W + CELL_W / 2;
+                                const cy = row * CELL_H + CELL_H / 2;
+                                
+                                // Scale down photos slightly to leave dark gaps between them
+                                const dw = CELL_W * 0.85; 
+                                const dh = CELL_H * 0.85;
+
                                 mX.save();
-                                mX.drawImage(img, dx, dy, dw, dh);
+                                mX.translate(cx, cy);
+                                // Randomize rotation to create the scattered "photo collage" wall look
+                                mX.rotate((Math.random() - 0.5) * 0.35);
+                                
+                                // Optional subtle border
+                                mX.fillStyle = 'rgba(255, 255, 255, 0.05)';
+                                mX.fillRect(-dw/2 - 4, -dh/2 - 4, dw + 8, dh + 8);
+                                
+                                mX.drawImage(img, -dw/2, -dh/2, dw, dh);
                                 mX.restore();
                             }
                         }
@@ -663,7 +669,6 @@
                 };
             });
 
-            // Globe material — MeshBasicMaterial so photos render flat (unlit) with no brightness distortion
             const globeMat = new THREE.MeshBasicMaterial({
                 map: globeTex,
                 transparent: true,
@@ -677,62 +682,44 @@
                PEEK INSIDE STATE + TRANSITION
             ════════════════════════════════════ */
             let isInsideGlobe = false;
-            let insideProgress = 0;         // 0 = fully outside, 1 = fully inside
-            const INSIDE_SPEED = 1.5;       // transition speed (progress/sec)
+            let insideProgress = 0;         
+            const INSIDE_SPEED = 1.5;       
             const FOV_OUTSIDE = 75;
-            const FOV_INSIDE  = 160;        // very wide fisheye — matches reference photo look
+            const FOV_INSIDE  = 140;        // Extreme wide fisheye to match reference exactly
             const CAM_Z_OUTSIDE = 22;
-            const CAM_Z_INSIDE  = 0.8;     // slightly off dead-centre for better perspective depth
+            const CAM_Z_INSIDE  = 0;        // Dead-centre to prevent sphere clipping while spinning
 
-            /* Inside-globe drag state — supports both horizontal AND slight vertical drag */
+            /* Inside-globe drag state — STRICTLY HORIZONTAL NOW */
             let isDragging = false;
             let dragLastX = 0;
-            let dragLastY = 0;
-            let globeVelocityY = 0;         // momentum for inertial horizontal drag
-            let globeVelocityX = 0;         // slight vertical tilt momentum
+            let globeVelocityY = 0;         // Momentum for inertial horizontal drag
 
             renderer.domElement.addEventListener('mousedown', e => {
                 if (!isInsideGlobe) return;
                 isDragging = true;
                 dragLastX = e.clientX;
-                dragLastY = e.clientY;
                 globeVelocityY = 0;
-                globeVelocityX = 0;
             });
             window.addEventListener('mouseup', () => { isDragging = false; });
             window.addEventListener('mousemove', e => {
                 if (!isInsideGlobe || !isDragging) return;
                 const dx = e.clientX - dragLastX;
-                const dy = e.clientY - dragLastY;
                 globeVelocityY = dx * 0.006;
-                globeVelocityX = dy * 0.003;
                 globe.rotation.y += globeVelocityY;
-                // Slight vertical tilt with hard clamp so photos don't disappear
-                globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x + globeVelocityX, -0.5, 0.5);
+                // Vertical tilt completely removed to enforce horizontal navigation only
                 dragLastX = e.clientX;
-                dragLastY = e.clientY;
             });
 
-            // Peek Inside button
             document.getElementById('peek-btn').addEventListener('click', () => {
                 isInsideGlobe = true;
                 document.getElementById('inside-close-btn').classList.add('visible');
                 document.getElementById('inside-hint').classList.add('visible');
             });
 
-            // X close button
             document.getElementById('inside-close-btn').addEventListener('click', () => {
                 isInsideGlobe = false;
                 isDragging = false;
                 globeVelocityY = 0;
-                globeVelocityX = 0;
-                // Gently reset globe tilt back to flat
-                const resetTilt = () => {
-                    globe.rotation.x = THREE.MathUtils.lerp(globe.rotation.x, 0, 0.08);
-                    if (Math.abs(globe.rotation.x) > 0.001) requestAnimationFrame(resetTilt);
-                    else globe.rotation.x = 0;
-                };
-                resetTilt();
                 document.getElementById('inside-close-btn').classList.remove('visible');
                 document.getElementById('inside-hint').classList.remove('visible');
             });
@@ -857,9 +844,8 @@
                 });
             }
 
-            // Photo clicks (gallery only; globe navigation is via OrbitControls drag outside)
             container.addEventListener('mousedown', (e) => {
-                if (isInsideGlobe) return; // inside uses its own drag handler
+                if (isInsideGlobe) return; 
                 if (phase !== "gallery") return;
                 mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -891,11 +877,10 @@
                 });
                 photoGroup.visible = true;
                 document.getElementById('ui-layer').style.display = "none";
-                // Close inside-globe view if open
+                
                 isInsideGlobe = false;
                 isDragging = false;
-                globeVelocityY = 0; globeVelocityX = 0;
-                globe.rotation.x = 0;
+                globeVelocityY = 0; 
                 document.getElementById('inside-close-btn').classList.remove('visible');
                 document.getElementById('inside-hint').classList.remove('visible');
             };
@@ -914,17 +899,14 @@
                     ? Math.min(1, insideProgress + delta * INSIDE_SPEED)
                     : Math.max(0, insideProgress - delta * INSIDE_SPEED);
 
-                // Ease in-out quad
                 const ease = insideProgress < 0.5
                     ? 2 * insideProgress * insideProgress
                     : 1 - Math.pow(-2 * insideProgress + 2, 2) / 2;
 
-                // Smoothly drive FOV and camera Z
                 camera.fov = FOV_OUTSIDE + (FOV_INSIDE - FOV_OUTSIDE) * ease;
                 camera.position.z = CAM_Z_OUTSIDE + (CAM_Z_INSIDE - CAM_Z_OUTSIDE) * ease;
                 camera.updateProjectionMatrix();
 
-                // Switch globe material side at the midpoint of transition
                 if (ease >= 0.5 && globeMat.side === THREE.FrontSide) {
                     globeMat.side = THREE.BackSide;
                     globeMat.needsUpdate = true;
@@ -933,25 +915,18 @@
                     globeMat.needsUpdate = true;
                 }
 
-                // While transitioning inside, keep globe fully opaque so photos are vivid
                 if (isInsideGlobe && globeMat.opacity < 1) {
                     globeMat.opacity = Math.min(1, globeMat.opacity + 0.04);
                     globeTex.needsUpdate = true;
                 }
 
-                // OrbitControls active only when outside and in globe/gallery phase
                 controls.enabled = !isInsideGlobe && (phase === "globe" || phase === "gallery");
                 controls.update();
 
-                // Inertial drag momentum decay inside (both axes)
                 if (isInsideGlobe && !isDragging) {
                     if (Math.abs(globeVelocityY) > 0.0001) {
                         globe.rotation.y += globeVelocityY;
                         globeVelocityY *= 0.92;
-                    }
-                    if (Math.abs(globeVelocityX) > 0.0001) {
-                        globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x + globeVelocityX, -0.5, 0.5);
-                        globeVelocityX *= 0.92;
                     }
                 }
 
@@ -979,7 +954,6 @@
                     bgGeo.attributes.position.needsUpdate = true;
                 }
 
-                /* ── Intro phase ── */
                 if (phase === "intro") {
                     const fadeInEnd = 1.5, explodeStart = 5.0, explodeDuration = 3.5;
                     const introEnd = explodeStart + explodeDuration;
@@ -1006,18 +980,15 @@
                     if (time >= introEnd) {
                         phase = "globe";
                         hGroup.visible = false; hGroupMirror.visible = false;
-                        // Show as flex row so both buttons appear side by side
                         document.getElementById('ui-layer').style.display = "flex";
                         controls.enabled = true;
                     }
                 }
 
-                /* Auto-rotate globe only when outside and in globe phase */
                 if ((phase === "globe" || phase === "transition") && !isInsideGlobe) {
                     globe.rotation.y += 0.005;
                 }
 
-                /* ── Transition phase ── */
                 if (phase === "transition") {
                     const tp = THREE.MathUtils.clamp((time - transitionStartTime) / TRANSITION_DURATION, 0, 1);
                     globeMat.opacity = Math.max(0, 1 - tp * 1.2);
@@ -1027,7 +998,6 @@
                     globeMat.opacity += 0.02;
                 }
 
-                /* ── Globe phase: floating quotes ── */
                 if (phase === "globe") {
                     const { width: vw, height: vh } = getViewSizeAtZ(QUOTE_Z);
                     const yBottom = (-vh / 2) - 6, yTop = (vh / 2) + 6;
@@ -1059,7 +1029,6 @@
                     quotePlanes.length = quoteMats.length = quoteIndices.length = 0;
                 }
 
-                /* ── Gallery phase ── */
                 if (phase === "gallery") {
                     if (globeMat.opacity > 0) globeMat.opacity -= 0.05; else globe.visible = false;
                     fireMat.opacity = THREE.MathUtils.lerp(fireMat.opacity, 0.8, 0.01);
