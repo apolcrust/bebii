@@ -497,13 +497,14 @@
                 if (e.button === 0) outerGlobeDragging = false;
             });
 
-            /* ─── Zoom: block scroll in non-globe/non-peek phases only ─── */
+            /* ─── Globe scroll zoom: direct camera Z control ─── */
+            let globeCamZ = 22; // tracks desired camera distance
             renderer.domElement.addEventListener('wheel', (e) => {
-                if (isPeeking) return; // peek has its own wheel handler above
-                if (phase === 'globe') return; // let OrbitControls handle zoom freely
-                e.stopPropagation();
+                if (isPeeking) return; // peek has its own wheel handler
+                if (phase !== 'globe') { e.preventDefault(); return; }
                 e.preventDefault();
-            }, { passive: false, capture: false });
+                globeCamZ = THREE.MathUtils.clamp(globeCamZ + e.deltaY * 0.05, 15, 55);
+            }, { passive: false });
 
             const clock = new THREE.Clock();
             const raycaster = new THREE.Raycaster();
@@ -768,15 +769,17 @@
             document.getElementById('peek-btn').addEventListener('click', () => {
                 isPeeking = !isPeeking;
                 document.getElementById('peek-btn').textContent = isPeeking ? '← Go Back' : '✦ Peek Inside';
+                document.getElementById('click-btn').style.display = isPeeking ? 'none' : '';
                 if (isPeeking) {
                     peekFov = PEEK_FOV;
-                    // Match peek sphere rotation to current globe rotation for continuity
                     peekCylinder.rotation.y = globe.rotation.y;
-                    // Snap camera to sphere center immediately
                     camera.position.set(0, 0, 0);
                     camera.lookAt(0, 0, -1);
                     controls.target.set(0, 0, 0);
                     controls.update();
+                } else {
+                    // Sync globeCamZ so camera restores to correct position
+                    globeCamZ = globeCamZ; // already in sync, no change needed
                 }
             });
 
@@ -959,8 +962,8 @@
                     camera.fov = THREE.MathUtils.lerp(camera.fov, peekFov, delta * 8);
                     camera.updateProjectionMatrix();
                 } else if (peekProgress > 0) {
-                    // Exiting peek: restore camera z gradually
-                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, OUTSIDE_CAM_Z, delta * 4);
+                    // Exiting peek: restore camera z to wherever user had zoomed to
+                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, globeCamZ, delta * 4);
                     camera.fov = THREE.MathUtils.lerp(camera.fov, OUTSIDE_FOV, delta * 6);
                     camera.updateProjectionMatrix();
                 }
@@ -969,7 +972,12 @@
                     ? Math.min(1, peekProgress + delta * PEEK_SPEED)
                     : Math.max(0, peekProgress - delta * PEEK_SPEED);
 
-                // Fade cylinder in/out
+                // Apply manual scroll zoom when viewing globe (not peeking)
+                if (!isPeeking && peekProgress <= 0 && phase === 'globe') {
+                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, globeCamZ, delta * 8);
+                }
+
+                // Fade sphere in/out
                 peekMat.opacity = THREE.MathUtils.lerp(peekMat.opacity, isPeeking ? 1 : 0, delta * 5);
                 if (peekMat.opacity > 0.01) {
                     peekCylinder.visible = true;
@@ -984,8 +992,6 @@
                 } else {
                     peekCylinder.visible = false;
                     if (peekProgress <= 0) {
-                        // Fully exited: restore camera to globe view position
-                        camera.position.z = OUTSIDE_CAM_Z;
                         camera.fov = OUTSIDE_FOV;
                         camera.updateProjectionMatrix();
                     }
