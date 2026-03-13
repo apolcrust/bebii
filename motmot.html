@@ -157,7 +157,7 @@
             position: fixed; inset: 0; z-index: 50;
             background: rgba(0,0,0,0.45);
             align-items: center; justify-content: center;
-            cursor: pointer;
+            cursor: default;
         }
         #photo-overlay.active { display: flex; }
         #photo-overlay img {
@@ -167,7 +167,13 @@
             border: 1px solid rgba(255,0,136,0.4);
             animation: overlayIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
             pointer-events: auto;
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="wideGlow"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="tightGlow"/><feMerge><feMergeNode in="wideGlow"/><feMergeNode in="tightGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23glow2)" opacity="0.99">I love youuuu</text></svg>') 55 20, pointer;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="gl2" x="-50%25" y="-50%25" width="200%25" height="200%25"><feGaussianBlur stdDeviation="6" result="w"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="t"/><feMerge><feMergeNode in="w"/><feMergeNode in="t"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="%23ff1493" text-anchor="middle" filter="url(%23gl2)" opacity="0.98">I love youuuu</text></svg>') 55 20, pointer;
+        }
+        #photo-overlay img:hover {
+            box-shadow: 0 0 80px rgba(255,0,136,0.8), 0 0 140px rgba(255,0,136,0.3);
+            transform: scale(1.02);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="gl2h" x="-50%25" y="-50%25" width="200%25" height="200%25"><feGaussianBlur stdDeviation="6" result="w"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="t"/><feMerge><feMergeNode in="w"/><feMergeNode in="t"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial,sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23gl2h)" opacity="0.99">I love youuuu</text></svg>') 55 20, pointer;
         }
         @keyframes overlayIn {
             from { opacity:0; transform:scale(0.82); }
@@ -542,6 +548,21 @@
                 const dx = e.clientX - outerGlobeDragLastX;
                 globe.rotation.y += dx * 0.008;
                 outerGlobeDragLastX = e.clientX;
+            });
+
+            // Hover cursor for floating gallery photos
+            const CURSOR_BEBI    = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"40\" viewBox=\"0 0 80 40\"><defs><filter id=\"gh\" x=\"-50%25\" y=\"-50%25\" width=\"200%25\" height=\"200%25\"><feGaussianBlur stdDeviation=\"6\" result=\"w\"/><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" result=\"t\"/><feMerge><feMergeNode in=\"w\"/><feMergeNode in=\"t\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"40\" y=\"22\" font-family=\"Arial,sans-serif\" font-size=\"14\" font-weight=\"bold\" fill=\"%23ff1493\" text-anchor=\"middle\" filter=\"url(%23gh)\" opacity=\"0.98\">Bebiiii</text></svg>') 40 20, auto";
+            const CURSOR_ILOVEU  = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"110\" height=\"40\" viewBox=\"0 0 110 40\"><defs><filter id=\"gi\" x=\"-50%25\" y=\"-50%25\" width=\"200%25\" height=\"200%25\"><feGaussianBlur stdDeviation=\"6\" result=\"w\"/><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" result=\"t\"/><feMerge><feMergeNode in=\"w\"/><feMergeNode in=\"t\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"55\" y=\"22\" font-family=\"Arial,sans-serif\" font-size=\"13\" font-weight=\"bold\" fill=\"%23ffffff\" text-anchor=\"middle\" filter=\"url(%23gi)\" opacity=\"0.99\">I love youuuu</text></svg>') 55 20, pointer";
+            const CURSOR_DEFAULT = "auto";
+
+            window.addEventListener('mousemove', (e) => {
+                if (phase !== 'gallery' || overlayOpen) return;
+                mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
+                raycaster.setFromCamera(mouse3D, camera);
+                const hits = raycaster.intersectObjects(photoGroup.children, true);
+                const hit = hits.find(o => o.object.name === "photo_mesh");
+                container.style.cursor = hit ? CURSOR_ILOVEU : CURSOR_DEFAULT;
             });
 
             window.addEventListener('mouseup', (e) => {
@@ -971,10 +992,8 @@
                 zoomedPhoto = null;
             }
 
-            // Clicking the centered image dismisses it
+            // Only clicking the image itself dismisses — not the backdrop
             overlayImg.addEventListener('click', (e) => { e.stopPropagation(); closeOverlay(); });
-            // Clicking the dark backdrop also dismisses
-            photoOverlay.addEventListener('click', closeOverlay);
 
             container.addEventListener('mousedown', (e) => {
                 if (isPeeking) return;
