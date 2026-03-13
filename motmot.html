@@ -167,6 +167,7 @@
             border: 1px solid rgba(255,0,136,0.4);
             animation: overlayIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
             pointer-events: auto;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="wideGlow"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="tightGlow"/><feMerge><feMergeNode in="wideGlow"/><feMergeNode in="tightGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23glow2)" opacity="0.99">I love youuuu</text></svg>') 55 20, pointer;
         }
         @keyframes overlayIn {
             from { opacity:0; transform:scale(0.82); }
@@ -209,6 +210,10 @@
     <div id="photo-overlay">
         <img id="overlay-img" src="" alt="" />
     </div>
+
+    <audio id="bg-music" loop>
+        <source src="./song/1.mp3" type="audio/mpeg">
+    </audio>
 
     <script type="importmap">
         {
@@ -266,6 +271,11 @@
                 screen.style.transform = 'scale(0.95)';
                 canvas2d.style.filter = 'blur(30px)';
                 container.style.opacity = '0';
+
+                // Start music — triggered by user gesture (button tap) so browsers allow it
+                const music = document.getElementById('bg-music');
+                music.volume = 0.6;
+                music.play().catch(() => {}); // silently ignore if browser blocks
 
                 setTimeout(() => {
                     container.style.display = 'none';
