@@ -497,13 +497,12 @@
                 if (e.button === 0) outerGlobeDragging = false;
             });
 
-            /* ─── Zoom: only via OrbitControls in globe phase (peek zoom handled separately above) ─── */
+            /* ─── Zoom: block scroll in non-globe/non-peek phases only ─── */
             renderer.domElement.addEventListener('wheel', (e) => {
-                if (isPeeking) return; // peek wheel is handled above
-                if (phase !== 'globe') {
-                    e.stopPropagation();
-                    e.preventDefault();
-                }
+                if (isPeeking) return; // peek has its own wheel handler above
+                if (phase === 'globe') return; // let OrbitControls handle zoom freely
+                e.stopPropagation();
+                e.preventDefault();
             }, { passive: false, capture: false });
 
             const clock = new THREE.Clock();
@@ -664,7 +663,8 @@
             scene.add(globe);
 
             /* ════════════════════════════════════════════════
-               PEEK INSIDE — Cylinder panorama (5 rows × 5 cols)
+               PEEK INSIDE — Sphere panorama (5 rows × 5 cols)
+               Same geometry as outside globe, camera at center.
                25 cells total, 15 images cycling for repetition.
             ════════════════════════════════════════════════ */
             const PCOLS = 5, PROWS = 5;
@@ -678,7 +678,7 @@
             peekX.fillRect(0, 0, PC_W, PC_H);
 
             const peekTex = new THREE.CanvasTexture(peekC);
-            peekTex.wrapS = THREE.RepeatWrapping;
+            peekTex.wrapS = THREE.ClampToEdgeWrapping;
             peekTex.wrapT = THREE.ClampToEdgeWrapping;
             peekTex.magFilter = THREE.LinearFilter;
             peekTex.minFilter = THREE.LinearMipmapLinearFilter;
@@ -692,7 +692,6 @@
                 for (let cellIdx = 0; cellIdx < total; cellIdx++) {
                     const col = cellIdx % PCOLS;
                     const row = Math.floor(cellIdx / PCOLS);
-                    // cycle through all 15 images — every cell always filled
                     const img = loadedPeekImgs[cellIdx % globeUrls.length];
                     if (!img) continue;
                     const dx = col * PCELL_W, dy = row * PCELL_H;
@@ -701,7 +700,7 @@
                     if (imgA > cellA) { sw = img.height * cellA; sx = (img.width - sw) / 2; }
                     else              { sh = img.width / cellA;  sy = (img.height - sh) / 2; }
                     peekX.drawImage(img, sx, sy, sw, sh, dx, dy, PCELL_W, PCELL_H);
-                    // Subtle glowing border between photos
+                    // Subtle glowing border
                     peekX.strokeStyle = 'rgba(255, 100, 180, 0.35)';
                     peekX.lineWidth = 4;
                     peekX.strokeRect(dx + 2, dy + 2, PCELL_W - 4, PCELL_H - 4);
@@ -714,16 +713,17 @@
                 img.onload = () => { loadedPeekImgs[i] = img; redrawPeekMosaic(); };
             });
 
-            // Taller cylinder to fit 5 rows comfortably
-            const cylGeo = new THREE.CylinderGeometry(22, 22, 24, 128, 1, true);
-            // Mirror U so images aren't horizontally flipped when seen from BackSide
-            const cylUV = cylGeo.attributes.uv;
-            for (let i = 0; i < cylUV.count; i++) cylUV.setX(i, 1 - cylUV.getX(i));
-            cylUV.needsUpdate = true;
+            // Sphere viewed from inside — same radius as outer globe
+            const peekSphGeo = new THREE.SphereGeometry(10, 128, 128);
+            // Flip U so BackSide doesn't mirror images horizontally
+            const peekUV = peekSphGeo.attributes.uv;
+            for (let i = 0; i < peekUV.count; i++) peekUV.setX(i, 1 - peekUV.getX(i));
+            peekUV.needsUpdate = true;
+
             const peekMat = new THREE.MeshBasicMaterial({
                 map: peekTex, side: THREE.BackSide, transparent: true, opacity: 0
             });
-            const peekCylinder = new THREE.Mesh(cylGeo, peekMat);
+            const peekCylinder = new THREE.Mesh(peekSphGeo, peekMat); // kept var name for compat
             peekCylinder.visible = false;
             scene.add(peekCylinder);
 
@@ -733,7 +733,7 @@
             const PEEK_SPEED = 2.0;
             const PEEK_CAM_Z = 0;           // camera flies to center
             const OUTSIDE_CAM_Z = 22;
-            const PEEK_FOV = 100;            // wide enough to see all 5 rows
+            const PEEK_FOV = 90;            // natural FOV for sphere panorama from inside
             const OUTSIDE_FOV = 75;
             let peekFov = OUTSIDE_FOV;      // user-adjustable zoom during peek
 
@@ -770,7 +770,9 @@
                 document.getElementById('peek-btn').textContent = isPeeking ? '← Go Back' : '✦ Peek Inside';
                 if (isPeeking) {
                     peekFov = PEEK_FOV;
-                    // Snap camera to cylinder center immediately so it's never outside the radius
+                    // Match peek sphere rotation to current globe rotation for continuity
+                    peekCylinder.rotation.y = globe.rotation.y;
+                    // Snap camera to sphere center immediately
                     camera.position.set(0, 0, 0);
                     camera.lookAt(0, 0, -1);
                     controls.target.set(0, 0, 0);
