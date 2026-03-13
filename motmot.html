@@ -497,13 +497,14 @@
                 if (e.button === 0) outerGlobeDragging = false;
             });
 
-            /* ─── Zoom: only allowed in globe phase ─── */
+            /* ─── Zoom: only via OrbitControls in globe phase (peek zoom handled separately above) ─── */
             renderer.domElement.addEventListener('wheel', (e) => {
-                if (phase !== 'globe' || isPeeking) {
+                if (isPeeking) return; // peek wheel is handled above
+                if (phase !== 'globe') {
                     e.stopPropagation();
                     e.preventDefault();
                 }
-            }, { passive: false, capture: true });
+            }, { passive: false, capture: false });
 
             const clock = new THREE.Clock();
             const raycaster = new THREE.Raycaster();
@@ -710,8 +711,10 @@
                 img.onload = () => { loadedPeekImgs[i] = img; redrawPeekMosaic(); };
             });
 
-            // Cylinder: open-ended, viewed from inside (BackSide), 3 rows × 5 cols visible around it
-            const cylGeo = new THREE.CylinderGeometry(18, 18, 12, 128, 1, true);
+            // Cylinder: viewed from inside — camera will move to center when peeking
+            // Radius 22 (larger than camera start z=22 so camera enters properly)
+            // Height 15 fits 3 rows nicely at ~90° FOV
+            const cylGeo = new THREE.CylinderGeometry(22, 22, 15, 128, 1, true);
             // Flip V so images are right-side up from inside
             const cylUV = cylGeo.attributes.uv;
             for (let i = 0; i < cylUV.count; i++) cylUV.setY(i, 1 - cylUV.getY(i));
@@ -725,6 +728,14 @@
 
             /* ─── Peek state ─── */
             let isPeeking = false;
+            let peekProgress = 0;           // 0 = outside, 1 = fully inside
+            const PEEK_SPEED = 2.0;
+            const PEEK_CAM_Z = 0;           // camera flies to center
+            const OUTSIDE_CAM_Z = 22;
+            const PEEK_FOV = 85;            // wide enough to see all 3 rows
+            const OUTSIDE_FOV = 75;
+            let peekFov = OUTSIDE_FOV;      // user-adjustable zoom during peek
+
             let peekCylVelocity = 0;
             let peekDragging = false;
             let peekDragLastX = 0;
@@ -741,13 +752,22 @@
                 if (!isPeeking || !peekDragging) return;
                 const dx = e.clientX - peekDragLastX;
                 peekCylVelocity = dx * 0.008;
-                peekCylinder.rotation.y -= peekCylVelocity; // cylinder rotates opposite to drag
+                peekCylinder.rotation.y += peekCylVelocity; // drag spins cylinder
                 peekDragLastX = e.clientX;
             });
+
+            // Scroll zoom only during peek
+            renderer.domElement.addEventListener('wheel', e => {
+                if (!isPeeking) return;
+                e.preventDefault();
+                e.stopPropagation();
+                peekFov = THREE.MathUtils.clamp(peekFov + e.deltaY * 0.05, 40, 120);
+            }, { passive: false, capture: true });
 
             document.getElementById('peek-btn').addEventListener('click', () => {
                 isPeeking = !isPeeking;
                 document.getElementById('peek-btn').textContent = isPeeking ? '← Go Back' : '✦ Peek Inside';
+                if (isPeeking) peekFov = PEEK_FOV; // reset zoom on enter
             });
 
             const loveQuotes = [
@@ -907,6 +927,7 @@
                 peekDragging = false;
                 outerGlobeDragging = false;
                 peekCylVelocity = 0;
+                peekProgress = 0;
                 peekCylinder.visible = false;
                 peekMat.opacity = 0;
                 document.getElementById('peek-btn').textContent = '✦ Peek Inside';
@@ -921,16 +942,34 @@
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
 
-                /* ── Peek cylinder: fade in/out + auto-rotate + inertia ── */
-                const targetPeekOpacity = isPeeking ? 1 : 0;
-                peekMat.opacity = THREE.MathUtils.lerp(peekMat.opacity, targetPeekOpacity, delta * 4);
+                /* ── Peek: fly camera in/out + fade cylinder + auto-rotate ── */
+                peekProgress = isPeeking
+                    ? Math.min(1, peekProgress + delta * PEEK_SPEED)
+                    : Math.max(0, peekProgress - delta * PEEK_SPEED);
+
+                const peekEase = peekProgress < 0.5
+                    ? 2 * peekProgress * peekProgress
+                    : 1 - Math.pow(-2 * peekProgress + 2, 2) / 2;
+
+                // Fly camera smoothly to center
+                camera.position.x = THREE.MathUtils.lerp(camera.position.x, 0, delta * 4);
+                camera.position.y = THREE.MathUtils.lerp(camera.position.y, 0, delta * 4);
+                camera.position.z = OUTSIDE_CAM_Z + (PEEK_CAM_Z - OUTSIDE_CAM_Z) * peekEase;
+
+                // FOV: lerp toward peekFov when inside, back to OUTSIDE_FOV when outside
+                const targetFov = isPeeking ? peekFov : OUTSIDE_FOV;
+                camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, delta * 5);
+                camera.updateProjectionMatrix();
+
+                // Fade cylinder in/out
+                peekMat.opacity = THREE.MathUtils.lerp(peekMat.opacity, isPeeking ? 1 : 0, delta * 4);
                 if (peekMat.opacity > 0.01) {
                     peekCylinder.visible = true;
-                    // Auto-rotate when not dragging
+                    // Auto-rotate + inertia
                     if (!peekDragging) {
-                        peekCylinder.rotation.y -= 0.004;
+                        peekCylinder.rotation.y += 0.003;
                         if (Math.abs(peekCylVelocity) > 0.0001) {
-                            peekCylinder.rotation.y -= peekCylVelocity;
+                            peekCylinder.rotation.y += peekCylVelocity;
                             peekCylVelocity *= 0.94;
                         }
                     }
@@ -938,13 +977,11 @@
                     peekCylinder.visible = false;
                 }
 
-                // Globe fades out when peeking, back in when returning
+                // Globe fades out while peeking
                 if (phase === 'globe') {
-                    if (isPeeking) {
-                        globeMat.opacity = Math.max(0, globeMat.opacity - delta * 3);
-                    } else {
-                        globeMat.opacity = Math.min(1, globeMat.opacity + delta * 1.5);
-                    }
+                    globeMat.opacity = isPeeking
+                        ? Math.max(0, globeMat.opacity - delta * 3)
+                        : Math.min(1, globeMat.opacity + delta * 1.5);
                 }
 
                 controls.enabled = !isPeeking && (phase === "globe" || phase === "gallery");
