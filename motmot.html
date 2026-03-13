@@ -206,7 +206,7 @@
     <div id="three-canvas-container"></div>
 
     <div id="ui-layer">
-        <button id="click-btn">View More</button>
+        <button id="click-btn">✦ View More</button>
         <button id="peek-btn">✦ Peek Inside</button>
     </div>
 
@@ -699,7 +699,6 @@
                     const img = loadedGlobeImgs[cellIdx % globeUrls.length];
                     if (!img) continue;
                     const dx = col * CELL_W, dy = row * CELL_H;
-                    // Object-fit: cover — crop to fill cell exactly, no gaps
                     const imgA = img.width / img.height;
                     const cellA = CELL_W / CELL_H;
                     let sx = 0, sy = 0, sw = img.width, sh = img.height;
@@ -1232,3 +1231,4 @@
     </script>
 </body>
 </html>
+
