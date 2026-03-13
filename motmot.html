@@ -664,12 +664,12 @@
             scene.add(globe);
 
             /* ════════════════════════════════════════════════
-               PEEK INSIDE — Cylinder panorama (3 rows × 5 cols)
-               Shows all 15 photos rotating like the outside globe.
+               PEEK INSIDE — Cylinder panorama (5 rows × 5 cols)
+               25 cells total, 15 images cycling for repetition.
             ════════════════════════════════════════════════ */
-            const PCOLS = 5, PROWS = 3;
-            const PC_W = 5120, PC_H = 3072;
-            const PCELL_W = PC_W / PCOLS, PCELL_H = PC_H / PROWS;
+            const PCOLS = 5, PROWS = 5;
+            const PC_W = 5120, PC_H = 5120;
+            const PCELL_W = PC_W / PCOLS, PCELL_H = PC_H / PROWS;  // 1024 × 1024
 
             const peekC = document.createElement('canvas');
             peekC.width = PC_W; peekC.height = PC_H;
@@ -688,10 +688,13 @@
             function redrawPeekMosaic() {
                 peekX.fillStyle = '#0d0018';
                 peekX.fillRect(0, 0, PC_W, PC_H);
-                for (let i = 0; i < globeUrls.length; i++) {
-                    const img = loadedPeekImgs[i];
+                const total = PCOLS * PROWS; // 25 cells
+                for (let cellIdx = 0; cellIdx < total; cellIdx++) {
+                    const col = cellIdx % PCOLS;
+                    const row = Math.floor(cellIdx / PCOLS);
+                    // cycle through all 15 images — every cell always filled
+                    const img = loadedPeekImgs[cellIdx % globeUrls.length];
                     if (!img) continue;
-                    const col = i % PCOLS, row = Math.floor(i / PCOLS);
                     const dx = col * PCELL_W, dy = row * PCELL_H;
                     const imgA = img.width / img.height, cellA = PCELL_W / PCELL_H;
                     let sx = 0, sy = 0, sw = img.width, sh = img.height;
@@ -711,8 +714,8 @@
                 img.onload = () => { loadedPeekImgs[i] = img; redrawPeekMosaic(); };
             });
 
-            // Cylinder: viewed from inside (BackSide) — camera will move to center when peeking
-            const cylGeo = new THREE.CylinderGeometry(22, 22, 15, 128, 1, true);
+            // Taller cylinder to fit 5 rows comfortably
+            const cylGeo = new THREE.CylinderGeometry(22, 22, 24, 128, 1, true);
             // Mirror U so images aren't horizontally flipped when seen from BackSide
             const cylUV = cylGeo.attributes.uv;
             for (let i = 0; i < cylUV.count; i++) cylUV.setX(i, 1 - cylUV.getX(i));
@@ -730,7 +733,7 @@
             const PEEK_SPEED = 2.0;
             const PEEK_CAM_Z = 0;           // camera flies to center
             const OUTSIDE_CAM_Z = 22;
-            const PEEK_FOV = 85;            // wide enough to see all 3 rows
+            const PEEK_FOV = 100;            // wide enough to see all 5 rows
             const OUTSIDE_FOV = 75;
             let peekFov = OUTSIDE_FOV;      // user-adjustable zoom during peek
 
