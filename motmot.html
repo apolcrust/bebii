@@ -4,21 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>1st Motmottt wBebiii🤍</title>
-
-    <!-- PWA / Mobile full-screen (auto-opens nicely from QR scan) -->
+    
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Motmot 🤍">
     <meta name="theme-color" content="#1a0a2e">
 
-    <!-- Open Graph — rich preview when link is shared / scanned -->
     <meta property="og:title" content="1st Motmottt wBebiii 🤍">
     <meta property="og:description" content="Something special, just for you 💕">
     <meta property="og:url" content="https://apolcrust.github.io/bebii/motmot.html">
     <meta property="og:type" content="website">
 
-    <!-- Auto-redirect mobile browsers to open immediately (no extra tap) -->
     <meta http-equiv="x-dns-prefetch-control" content="on">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 85 C 20 65, 5 50, 5 35 C 5 20, 15 10, 25 10 C 35 10, 45 20, 50 30 C 55 20, 65 10, 75 10 C 85 10, 95 20, 95 35 C 95 50, 80 65, 50 85 Z' fill='%23ff1493'/></svg>">
     <style>
@@ -151,7 +148,7 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        /* ── Photo Lightbox Overlay ── */
+
         #photo-overlay {
             display: none;
             position: fixed; inset: 0; z-index: 50;
@@ -278,10 +275,10 @@
                 canvas2d.style.filter = 'blur(30px)';
                 container.style.opacity = '0';
 
-                // Start music — triggered by user gesture (button tap) so browsers allow it
+
                 const music = document.getElementById('bg-music');
                 music.volume = 0.6;
-                music.play().catch(() => {}); // silently ignore if browser blocks
+                music.play().catch(() => {});
 
                 setTimeout(() => {
                     container.style.display = 'none';
@@ -494,9 +491,6 @@
         animate2D();
         window.addEventListener('resize', () => { if(!threeInitialized) buildScene2D(); });
 
-        /* ════════════════════════════════════════════
-           THREE.JS SCENE
-        ════════════════════════════════════════════ */
         function startThreeScene() {
             threeInitialized = true;
             const container = document.getElementById('three-canvas-container');
@@ -524,7 +518,6 @@
             controls.autoRotate = false; 
             controls.enableZoom = true;
 
-            // LEFT click is handled manually (globe rotation) — RIGHT click = pan through space
             controls.mouseButtons = {
                 MIDDLE: THREE.MOUSE.DOLLY,
                 RIGHT: THREE.MOUSE.PAN
@@ -532,7 +525,6 @@
             
             const PAN_LIMIT = 20;
 
-            /* ─── Left-click: rotate globe mesh ─── */
             let outerGlobeDragging = false;
             let outerGlobeDragLastX = 0;
 
@@ -550,7 +542,6 @@
                 outerGlobeDragLastX = e.clientX;
             });
 
-            // Hover cursor for floating gallery photos
             const CURSOR_BEBI   = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"40\" viewBox=\"0 0 80 40\"><defs><filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\"><feGaussianBlur stdDeviation=\"6\" result=\"wideGlow\"/><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" result=\"tightGlow\"/><feMerge><feMergeNode in=\"wideGlow\"/><feMergeNode in=\"tightGlow\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"40\" y=\"22\" font-family=\"Arial, sans-serif\" font-size=\"14\" font-weight=\"bold\" fill=\"%23ff1493\" text-anchor=\"middle\" filter=\"url(%23glow)\" opacity=\"0.98\">Bebiiii</text></svg>') 40 20, auto";
             const CURSOR_ILOVEU = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"110\" height=\"40\" viewBox=\"0 0 110 40\"><defs><filter id=\"glow2\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\"><feGaussianBlur stdDeviation=\"6\" result=\"wideGlow\"/><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" result=\"tightGlow\"/><feMerge><feMergeNode in=\"wideGlow\"/><feMergeNode in=\"tightGlow\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"55\" y=\"22\" font-family=\"Arial, sans-serif\" font-size=\"13\" font-weight=\"bold\" fill=\"%23ff1493\" text-anchor=\"middle\" filter=\"url(%23glow2)\" opacity=\"0.99\">I love youuuu</text></svg>') 55 20, auto";
             const CURSOR_DEFAULT = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"40\" viewBox=\"0 0 80 40\"><defs><filter id=\"glow\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\"><feGaussianBlur stdDeviation=\"6\" result=\"wideGlow\"/><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" result=\"tightGlow\"/><feMerge><feMergeNode in=\"wideGlow\"/><feMergeNode in=\"tightGlow\"/><feMergeNode in=\"SourceGraphic\"/></feMerge></filter></defs><text x=\"40\" y=\"22\" font-family=\"Arial, sans-serif\" font-size=\"14\" font-weight=\"bold\" fill=\"%23ff1493\" text-anchor=\"middle\" filter=\"url(%23glow)\" opacity=\"0.98\">Bebiiii</text></svg>') 40 20, auto";
@@ -569,10 +560,9 @@
                 if (e.button === 0) outerGlobeDragging = false;
             });
 
-            /* ─── Globe scroll zoom: direct camera Z control ─── */
-            let globeCamZ = 22; // tracks desired camera distance
+            let globeCamZ = 22;
             renderer.domElement.addEventListener('wheel', (e) => {
-                if (isPeeking) return; // peek has its own wheel handler
+                if (isPeeking) return;
                 if (phase !== 'globe') { e.preventDefault(); return; }
                 e.preventDefault();
                 globeCamZ = THREE.MathUtils.clamp(globeCamZ + e.deltaY * 0.05, 15, 55);
@@ -680,14 +670,10 @@
             const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
             scene.add(new THREE.Points(bgGeo, bgMat));
 
-            /* ════════════ GLOBE MOSAIC TEXTURE ════════════
-               8 cols × 6 rows = 48 cells, 15 images cycling.
-               Every cell is cover-filled so zero black spots.
-            ══════════════════════════════════════════════ */
             const MCOLS = 8, MROWS = 6;
             const MC_W = 4096, MC_H = 3072;
-            const CELL_W = Math.floor(MC_W / MCOLS);   // 512
-            const CELL_H = Math.floor(MC_H / MROWS);   // 512
+            const CELL_W = Math.floor(MC_W / MCOLS);
+            const CELL_H = Math.floor(MC_H / MROWS);
 
             const mC = document.createElement('canvas');
             mC.width = MC_W; mC.height = MC_H;
@@ -735,14 +721,9 @@
             const globe = new THREE.Mesh(new THREE.SphereGeometry(11, 128, 128), globeMat);
             scene.add(globe);
 
-            /* ════════════════════════════════════════════════
-               PEEK INSIDE — Sphere panorama (5 rows × 5 cols)
-               Same geometry as outside globe, camera at center.
-               25 cells total, 15 images cycling for repetition.
-            ════════════════════════════════════════════════ */
             const PCOLS = 5, PROWS = 5;
             const PC_W = 5120, PC_H = 5120;
-            const PCELL_W = PC_W / PCOLS, PCELL_H = PC_H / PROWS;  // 1024 × 1024
+            const PCELL_W = PC_W / PCOLS, PCELL_H = PC_H / PROWS;
 
             const peekC = document.createElement('canvas');
             peekC.width = PC_W; peekC.height = PC_H;
@@ -761,7 +742,7 @@
             function redrawPeekMosaic() {
                 peekX.fillStyle = '#0d0018';
                 peekX.fillRect(0, 0, PC_W, PC_H);
-                const total = PCOLS * PROWS; // 25 cells
+                const total = PCOLS * PROWS;
                 for (let cellIdx = 0; cellIdx < total; cellIdx++) {
                     const col = cellIdx % PCOLS;
                     const row = Math.floor(cellIdx / PCOLS);
@@ -773,7 +754,7 @@
                     if (imgA > cellA) { sw = img.height * cellA; sx = (img.width - sw) / 2; }
                     else              { sh = img.width / cellA;  sy = (img.height - sh) / 2; }
                     peekX.drawImage(img, sx, sy, sw, sh, dx, dy, PCELL_W, PCELL_H);
-                    // Subtle glowing border
+
                     peekX.strokeStyle = 'rgba(255, 100, 180, 0.35)';
                     peekX.lineWidth = 4;
                     peekX.strokeRect(dx + 2, dy + 2, PCELL_W - 4, PCELL_H - 4);
@@ -786,9 +767,9 @@
                 img.onload = () => { loadedPeekImgs[i] = img; redrawPeekMosaic(); };
             });
 
-            // Sphere viewed from inside — same radius as outer globe
+
             const peekSphGeo = new THREE.SphereGeometry(10, 128, 128);
-            // Flip U so BackSide doesn't mirror images horizontally
+
             const peekUV = peekSphGeo.attributes.uv;
             for (let i = 0; i < peekUV.count; i++) peekUV.setX(i, 1 - peekUV.getX(i));
             peekUV.needsUpdate = true;
@@ -796,19 +777,19 @@
             const peekMat = new THREE.MeshBasicMaterial({
                 map: peekTex, side: THREE.BackSide, transparent: true, opacity: 0
             });
-            const peekCylinder = new THREE.Mesh(peekSphGeo, peekMat); // kept var name for compat
+            const peekCylinder = new THREE.Mesh(peekSphGeo, peekMat);
             peekCylinder.visible = false;
             scene.add(peekCylinder);
 
-            /* ─── Peek state ─── */
+
             let isPeeking = false;
-            let peekProgress = 0;           // 0 = outside, 1 = fully inside
+            let peekProgress = 0;
             const PEEK_SPEED = 2.0;
-            const PEEK_CAM_Z = 0;           // camera flies to center
+            const PEEK_CAM_Z = 0;
             const OUTSIDE_CAM_Z = 22;
-            const PEEK_FOV = 90;            // natural FOV for sphere panorama from inside
+            const PEEK_FOV = 90;
             const OUTSIDE_FOV = 75;
-            let peekFov = OUTSIDE_FOV;      // user-adjustable zoom during peek
+            let peekFov = OUTSIDE_FOV;
 
             let peekCylVelocity = 0;
             let peekDragging = false;
@@ -826,11 +807,10 @@
                 if (!isPeeking || !peekDragging) return;
                 const dx = e.clientX - peekDragLastX;
                 peekCylVelocity = dx * 0.008;
-                peekCylinder.rotation.y -= peekCylVelocity; // drag spins sphere (corrected direction)
+                peekCylinder.rotation.y -= peekCylVelocity;
                 peekDragLastX = e.clientX;
             });
 
-            // Scroll zoom only during peek
             renderer.domElement.addEventListener('wheel', e => {
                 if (!isPeeking) return;
                 e.preventDefault();
@@ -850,8 +830,8 @@
                     controls.target.set(0, 0, 0);
                     controls.update();
                 } else {
-                    // Sync globeCamZ so camera restores to correct position
-                    globeCamZ = globeCamZ; // already in sync, no change needed
+
+                    globeCamZ = globeCamZ;
                 }
             });
 
@@ -975,7 +955,6 @@
                 });
             }
 
-            /* ── Photo lightbox overlay ── */
             const photoOverlay = document.getElementById('photo-overlay');
             const overlayImg   = document.getElementById('overlay-img');
             let overlayOpen = false;
@@ -992,7 +971,7 @@
                 zoomedPhoto = null;
             }
 
-            // Only clicking the image itself dismisses — not the backdrop
+
             overlayImg.addEventListener('click', (e) => { e.stopPropagation(); closeOverlay(); });
 
             container.addEventListener('mousedown', (e) => {
@@ -1007,7 +986,7 @@
                     if (hit) {
                         const p = photos.find(ph => ph.mesh === hit.object);
                         if (p) {
-                            // Open overlay with this photo's texture src
+
                             const src = p.mesh.material.map.image.src;
                             openOverlay(src);
                             zoomedPhoto = p;
@@ -1016,7 +995,6 @@
                 }
             });
 
-            /* ── Gallery scroll zoom ── */
             let galleryCamZ = 22;
             renderer.domElement.addEventListener('wheel', (e) => {
                 if (isPeeking || phase !== 'gallery') return;
@@ -1031,7 +1009,7 @@
                 phase = "transition";
                 transitionStartTime = clock.getElapsedTime();
                 lastPhotoSpawnTime = clock.getElapsedTime();
-                galleryCamZ = 22; // reset zoom for gallery
+                galleryCamZ = 22;
                 closeOverlay();
                 photos.forEach((p) => {
                     p.group.position.y = -35;
@@ -1055,20 +1033,17 @@
             scene.add(new THREE.AmbientLight(0xffffff, 1.2));
             camera.position.z = 22;
 
-            /* ════════════ ANIMATE LOOP ════════════ */
             function animate() {
                 requestAnimationFrame(animate);
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
 
-                /* ── Peek: hold camera at center, fade cylinder, auto-rotate ── */
-                // While peeking: lock camera at exact center of cylinder
                 if (isPeeking) {
                     camera.position.set(0, 0, 0);
                     camera.fov = THREE.MathUtils.lerp(camera.fov, peekFov, delta * 8);
                     camera.updateProjectionMatrix();
                 } else if (peekProgress > 0) {
-                    // Exiting peek: restore camera z to wherever user had zoomed to
+
                     camera.position.z = THREE.MathUtils.lerp(camera.position.z, globeCamZ, delta * 4);
                     camera.fov = THREE.MathUtils.lerp(camera.fov, OUTSIDE_FOV, delta * 6);
                     camera.updateProjectionMatrix();
@@ -1078,16 +1053,14 @@
                     ? Math.min(1, peekProgress + delta * PEEK_SPEED)
                     : Math.max(0, peekProgress - delta * PEEK_SPEED);
 
-                // Apply manual scroll zoom when viewing globe (not peeking)
                 if (!isPeeking && peekProgress <= 0 && phase === 'globe') {
                     camera.position.z = THREE.MathUtils.lerp(camera.position.z, globeCamZ, delta * 8);
                 }
 
-                // Fade sphere in/out
                 peekMat.opacity = THREE.MathUtils.lerp(peekMat.opacity, isPeeking ? 1 : 0, delta * 5);
                 if (peekMat.opacity > 0.01) {
                     peekCylinder.visible = true;
-                    // Auto-rotate + inertia when not dragging
+
                     if (!peekDragging) {
                         peekCylinder.rotation.y += 0.003;
                         if (Math.abs(peekCylVelocity) > 0.0001) {
@@ -1103,7 +1076,6 @@
                     }
                 }
 
-                // Globe fades out while peeking
                 if (phase === 'globe') {
                     globeMat.opacity = isPeeking
                         ? Math.max(0, globeMat.opacity - delta * 3)
@@ -1227,7 +1199,6 @@
                         return false;
                     }
                     photos.forEach(p => {
-                        // All photos always float — overlay handles the "zoom" view
                         p.group.position.y += p.speed;
                         p.group.quaternion.copy(camera.quaternion);
                         const y = p.group.position.y;
@@ -1245,7 +1216,6 @@
                         p.shadow.material.opacity = (0.7 + Math.sin(time * 3) * 0.3) * p.mesh.material.opacity;
                     });
 
-                    // Scroll zoom for gallery
                     camera.position.z = THREE.MathUtils.lerp(camera.position.z, galleryCamZ, delta * 8);
                 }
 
