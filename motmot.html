@@ -125,41 +125,7 @@
             cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="40" viewBox="0 0 110 40"><defs><filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="wideGlow"/><feGaussianBlur in="SourceGraphic" stdDeviation="2" result="tightGlow"/><feMerge><feMergeNode in="wideGlow"/><feMergeNode in="tightGlow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><text x="55" y="22" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="%23ffffff" text-anchor="middle" filter="url(%23glow2)" opacity="0.99">I love youuuu</text></svg>') 55 20, auto;
         }
 
-        #inside-close-btn {
-            position: fixed;
-            top: 30px; right: 40px;
-            z-index: 30;
-            display: none;
-            width: 52px; height: 52px;
-            border-radius: 50%;
-            background: rgba(255, 0, 136, 0.18);
-            border: 1.5px solid rgba(255, 0, 136, 0.65);
-            color: #ff9aa2;
-            font-size: 24px; font-weight: bold;
-            align-items: center; justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 16px rgba(255, 0, 136, 0.3);
-            user-select: none;
-        }
-        #inside-close-btn.visible { display: flex; }
-        #inside-close-btn:hover {
-            background: rgba(255, 0, 136, 0.5);
-            border-color: #ff9aa2;
-            box-shadow: 0 0 28px rgba(255, 0, 136, 0.7);
-            transform: scale(1.1);
-        }
-        #inside-hint {
-            position: fixed;
-            top: 42px; right: 102px;
-            z-index: 30;
-            display: none;
-            color: rgba(255, 183, 197, 0.7);
-            font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-            text-shadow: 0 0 8px rgba(255, 20, 147, 0.5);
-            pointer-events: none;
-        }
-        #inside-hint.visible { display: block; }
+
 
         canvas#c { position: absolute; top: 0; left: 0; z-index: 1; transition: filter 2s ease; pointer-events: none; user-select: none; }
         #three-canvas-container { 
@@ -202,9 +168,6 @@
         <button id="click-btn">View More</button>
         <button id="peek-btn">✦ Peek Inside</button>
     </div>
-
-    <span id="inside-hint">drag to explore</span>
-    <button id="inside-close-btn">✕</button>
 
     <script type="importmap">
         {
@@ -284,12 +247,6 @@
         const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
         const mouse = { x: -1000, y: -1000, r: 150, active: false };
-        let globeDragging = false;
-        let globeDragLastX = 0;
-        let globeDragLastY = 0;
-        let isPanning = false;
-        let panLastX = 0;
-        let panLastY = 0;
 
         window.addEventListener('mousemove', e => {
             mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
@@ -496,46 +453,6 @@
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
 
-            // Enable globe dragging (left-click) and right-click pan in globe view
-            const dom3d = renderer.domElement;
-            dom3d.addEventListener('mousedown', (e) => {
-                // Left-click to rotate the globe when in globe view
-                if (e.button === 0 && phase === 'globe') {
-                    globeDragging = true; globeDragLastX = e.clientX; globeDragLastY = e.clientY; controls.enabled = false; e.preventDefault();
-                }
-                // Right-click to pan through space
-                if (e.button === 2) {
-                    isPanning = true; panLastX = e.clientX; panLastY = e.clientY; e.preventDefault();
-                }
-            });
-            dom3d.addEventListener('mouseup', (e) => {
-                if (e.button === 0) { globeDragging = false; controls.enabled = true; }
-                if (e.button === 2) { isPanning = false; }
-            });
-            dom3d.addEventListener('mousemove', (e) => {
-                if (globeDragging) {
-                    const dx = e.clientX - globeDragLastX;
-                    const dy = e.clientY - globeDragLastY;
-                    globeDragLastX = e.clientX; globeDragLastY = e.clientY;
-                    globe.rotation.y += dx * 0.005;
-                    globe.rotation.x += dy * 0.002;
-                    globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x, -0.6, 0.6);
-                } else if (isPanning) {
-                    const dx = e.clientX - panLastX;
-                    const dy = e.clientY - panLastY;
-                    panLastX = e.clientX; panLastY = e.clientY;
-                    const theta = dx * 0.005;
-                    const radius = Math.sqrt(camera.position.x*camera.position.x + camera.position.z*camera.position.z);
-                    let currentAngle = Math.atan2(camera.position.x, camera.position.z);
-                    currentAngle -= theta;
-                    camera.position.x = radius * Math.sin(currentAngle);
-                    camera.position.z = radius * Math.cos(currentAngle);
-                    camera.position.y += -dy * 0.01;
-                    camera.lookAt(0, 0, 0);
-                }
-            });
-
-            // Exactly replicating the navigation settings from your reference file
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true; 
             controls.dampingFactor = 0.07;
@@ -543,14 +460,50 @@
             
             controls.minPolarAngle = Math.PI / 2; 
             controls.maxPolarAngle = Math.PI / 2;
-            controls.minDistance = 10; 
-            controls.maxDistance = 100;
+            controls.minDistance = 15; 
+            controls.maxDistance = 60;
             
             controls.enablePan = true; 
             controls.autoRotate = false; 
             controls.enableZoom = true;
+
+            // LEFT click is handled manually (globe rotation) — RIGHT click = pan through space
+            controls.mouseButtons = {
+                MIDDLE: THREE.MOUSE.DOLLY,
+                RIGHT: THREE.MOUSE.PAN
+            };
             
-            const PAN_LIMIT = 15;
+            const PAN_LIMIT = 20;
+
+            /* ─── Left-click: rotate globe mesh ─── */
+            let outerGlobeDragging = false;
+            let outerGlobeDragLastX = 0;
+
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                if (e.button !== 0 || isPeeking || phase !== 'globe') return;
+                outerGlobeDragging = true;
+                outerGlobeDragLastX = e.clientX;
+                e.stopPropagation();
+            }, { capture: true });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!outerGlobeDragging) return;
+                const dx = e.clientX - outerGlobeDragLastX;
+                globe.rotation.y += dx * 0.008;
+                outerGlobeDragLastX = e.clientX;
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (e.button === 0) outerGlobeDragging = false;
+            });
+
+            /* ─── Zoom: only allowed in globe phase ─── */
+            renderer.domElement.addEventListener('wheel', (e) => {
+                if (phase !== 'globe' || isPeeking) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                }
+            }, { passive: false, capture: true });
 
             const clock = new THREE.Clock();
             const raycaster = new THREE.Raycaster();
@@ -654,105 +607,147 @@
             const bgGeo = new THREE.BufferGeometry(); bgGeo.setAttribute('position', new THREE.BufferAttribute(bgPos, 3));
             scene.add(new THREE.Points(bgGeo, bgMat));
 
-            const MCOLS = 8, MROWS = 5;
-            const MC_W = 4096, MC_H = 2048;
-            const CELL_W = Math.floor(MC_W / MCOLS);
-            const CELL_H = Math.floor(MC_H / MROWS);
+            /* ════════════ GLOBE MOSAIC TEXTURE ════════════
+               8 cols × 6 rows = 48 cells, 15 images cycling.
+               Every cell is cover-filled so zero black spots.
+            ══════════════════════════════════════════════ */
+            const MCOLS = 8, MROWS = 6;
+            const MC_W = 4096, MC_H = 3072;
+            const CELL_W = Math.floor(MC_W / MCOLS);   // 512
+            const CELL_H = Math.floor(MC_H / MROWS);   // 512
 
             const mC = document.createElement('canvas');
             mC.width = MC_W; mC.height = MC_H;
             const mX = mC.getContext('2d');
-            
-            mX.fillStyle = '#030005';
+            mX.fillStyle = '#1a0a2e';
             mX.fillRect(0, 0, MC_W, MC_H);
 
             const globeTex = new THREE.CanvasTexture(mC);
-            globeTex.wrapS = THREE.ClampToEdgeWrapping;
+            globeTex.wrapS = THREE.RepeatWrapping;
             globeTex.wrapT = THREE.ClampToEdgeWrapping;
             globeTex.magFilter = THREE.LinearFilter;
             globeTex.minFilter = THREE.LinearMipmapLinearFilter;
             globeTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
+            const loadedGlobeImgs = {};
+            function redrawGlobeMosaic() {
+                mX.fillStyle = '#1a0a2e';
+                mX.fillRect(0, 0, MC_W, MC_H);
+                const total = MCOLS * MROWS;
+                for (let cellIdx = 0; cellIdx < total; cellIdx++) {
+                    const col = cellIdx % MCOLS;
+                    const row = Math.floor(cellIdx / MCOLS);
+                    const img = loadedGlobeImgs[cellIdx % globeUrls.length];
+                    if (!img) continue;
+                    const dx = col * CELL_W, dy = row * CELL_H;
+                    // Object-fit: cover — crop to fill cell exactly, no gaps
+                    const imgA = img.width / img.height;
+                    const cellA = CELL_W / CELL_H;
+                    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+                    if (imgA > cellA) { sw = img.height * cellA; sx = (img.width - sw) / 2; }
+                    else              { sh = img.width / cellA;  sy = (img.height - sh) / 2; }
+                    mX.drawImage(img, sx, sy, sw, sh, dx, dy, CELL_W, CELL_H);
+                }
+                globeTex.needsUpdate = true;
+            }
+
             globeUrls.forEach((url, imgIdx) => {
                 const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
-                img.onload = () => {
-                    for (let row = 0; row < MROWS; row++) {
-                        for (let col = 0; col < MCOLS; col++) {
-                            const cellIdx = row * MCOLS + col;
-                            if (cellIdx % 15 === imgIdx) {
-                                const cx = col * CELL_W + CELL_W / 2;
-                                const cy = row * CELL_H + CELL_H / 2;
-                                
-                                const dw = CELL_W * 0.85; 
-                                const dh = CELL_H * 0.85;
-
-                                mX.save();
-                                mX.translate(cx, cy);
-                                mX.rotate((Math.random() - 0.5) * 0.35);
-                                
-                                mX.fillStyle = 'rgba(255, 255, 255, 0.05)';
-                                mX.fillRect(-dw/2 - 4, -dh/2 - 4, dw + 8, dh + 8);
-                                
-                                mX.drawImage(img, -dw/2, -dh/2, dw, dh);
-                                mX.restore();
-                            }
-                        }
-                    }
-                    globeTex.needsUpdate = true;
-                };
+                img.onload = () => { loadedGlobeImgs[imgIdx] = img; redrawGlobeMosaic(); };
             });
 
             const globeMat = new THREE.MeshBasicMaterial({
-                map: globeTex,
-                transparent: true,
-                opacity: 0,
-                side: THREE.FrontSide
+                map: globeTex, transparent: true, opacity: 0, side: THREE.FrontSide
             });
             const globe = new THREE.Mesh(new THREE.SphereGeometry(11, 128, 128), globeMat);
             scene.add(globe);
 
-            /* ════════════════════════════════════
-               PEEK INSIDE STATE + TRANSITION
-            ════════════════════════════════════ */
-            let isInsideGlobe = false;
-            let insideProgress = 0;         
-            const INSIDE_SPEED = 1.5;       
-            const FOV_OUTSIDE = 75;
-            const FOV_INSIDE  = 140;        
-            const CAM_Z_OUTSIDE = 22;
-            const CAM_Z_INSIDE  = 0;        
+            /* ════════════════════════════════════════════════
+               PEEK INSIDE — Cylinder panorama (3 rows × 5 cols)
+               Shows all 15 photos rotating like the outside globe.
+            ════════════════════════════════════════════════ */
+            const PCOLS = 5, PROWS = 3;
+            const PC_W = 5120, PC_H = 3072;
+            const PCELL_W = PC_W / PCOLS, PCELL_H = PC_H / PROWS;
 
-            let isDragging = false;
-            let dragLastX = 0;
-            let globeVelocityY = 0;         
+            const peekC = document.createElement('canvas');
+            peekC.width = PC_W; peekC.height = PC_H;
+            const peekX = peekC.getContext('2d');
+            peekX.fillStyle = '#0d0018';
+            peekX.fillRect(0, 0, PC_W, PC_H);
+
+            const peekTex = new THREE.CanvasTexture(peekC);
+            peekTex.wrapS = THREE.RepeatWrapping;
+            peekTex.wrapT = THREE.ClampToEdgeWrapping;
+            peekTex.magFilter = THREE.LinearFilter;
+            peekTex.minFilter = THREE.LinearMipmapLinearFilter;
+            peekTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+            const loadedPeekImgs = {};
+            function redrawPeekMosaic() {
+                peekX.fillStyle = '#0d0018';
+                peekX.fillRect(0, 0, PC_W, PC_H);
+                for (let i = 0; i < globeUrls.length; i++) {
+                    const img = loadedPeekImgs[i];
+                    if (!img) continue;
+                    const col = i % PCOLS, row = Math.floor(i / PCOLS);
+                    const dx = col * PCELL_W, dy = row * PCELL_H;
+                    const imgA = img.width / img.height, cellA = PCELL_W / PCELL_H;
+                    let sx = 0, sy = 0, sw = img.width, sh = img.height;
+                    if (imgA > cellA) { sw = img.height * cellA; sx = (img.width - sw) / 2; }
+                    else              { sh = img.width / cellA;  sy = (img.height - sh) / 2; }
+                    peekX.drawImage(img, sx, sy, sw, sh, dx, dy, PCELL_W, PCELL_H);
+                    // Subtle glowing border between photos
+                    peekX.strokeStyle = 'rgba(255, 100, 180, 0.35)';
+                    peekX.lineWidth = 4;
+                    peekX.strokeRect(dx + 2, dy + 2, PCELL_W - 4, PCELL_H - 4);
+                }
+                peekTex.needsUpdate = true;
+            }
+
+            globeUrls.forEach((url, i) => {
+                const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
+                img.onload = () => { loadedPeekImgs[i] = img; redrawPeekMosaic(); };
+            });
+
+            // Cylinder: open-ended, viewed from inside (BackSide), 3 rows × 5 cols visible around it
+            const cylGeo = new THREE.CylinderGeometry(18, 18, 12, 128, 1, true);
+            // Flip V so images are right-side up from inside
+            const cylUV = cylGeo.attributes.uv;
+            for (let i = 0; i < cylUV.count; i++) cylUV.setY(i, 1 - cylUV.getY(i));
+            cylUV.needsUpdate = true;
+            const peekMat = new THREE.MeshBasicMaterial({
+                map: peekTex, side: THREE.BackSide, transparent: true, opacity: 0
+            });
+            const peekCylinder = new THREE.Mesh(cylGeo, peekMat);
+            peekCylinder.visible = false;
+            scene.add(peekCylinder);
+
+            /* ─── Peek state ─── */
+            let isPeeking = false;
+            let peekCylVelocity = 0;
+            let peekDragging = false;
+            let peekDragLastX = 0;
 
             renderer.domElement.addEventListener('mousedown', e => {
-                if (!isInsideGlobe) return;
-                isDragging = true;
-                dragLastX = e.clientX;
-                globeVelocityY = 0;
-            });
-            window.addEventListener('mouseup', () => { isDragging = false; });
+                if (!isPeeking || e.button !== 0) return;
+                peekDragging = true;
+                peekDragLastX = e.clientX;
+                peekCylVelocity = 0;
+                e.stopPropagation();
+            }, { capture: true });
+            window.addEventListener('mouseup', () => { peekDragging = false; });
             window.addEventListener('mousemove', e => {
-                if (!isInsideGlobe || !isDragging) return;
-                const dx = e.clientX - dragLastX;
-                globeVelocityY = dx * 0.006;
-                globe.rotation.y += globeVelocityY;
-                dragLastX = e.clientX;
+                if (!isPeeking || !peekDragging) return;
+                const dx = e.clientX - peekDragLastX;
+                peekCylVelocity = dx * 0.008;
+                peekCylinder.rotation.y -= peekCylVelocity; // cylinder rotates opposite to drag
+                peekDragLastX = e.clientX;
             });
 
             document.getElementById('peek-btn').addEventListener('click', () => {
-                isInsideGlobe = true;
-                document.getElementById('inside-close-btn').classList.add('visible');
-                document.getElementById('inside-hint').classList.add('visible');
-            });
-
-            document.getElementById('inside-close-btn').addEventListener('click', () => {
-                isInsideGlobe = false;
-                isDragging = false;
-                globeVelocityY = 0;
-                document.getElementById('inside-close-btn').classList.remove('visible');
-                document.getElementById('inside-hint').classList.remove('visible');
+                isPeeking = !isPeeking;
+                document.getElementById('peek-btn').textContent = isPeeking ? '← Go Back' : '✦ Peek Inside';
             });
 
             const loveQuotes = [
@@ -876,7 +871,7 @@
             }
 
             container.addEventListener('mousedown', (e) => {
-                if (isInsideGlobe) return; 
+                if (isPeeking) return;
                 if (phase !== "gallery") return;
                 mouse3D.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse3D.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -908,16 +903,17 @@
                 });
                 photoGroup.visible = true;
                 document.getElementById('ui-layer').style.display = "none";
-                
-                isInsideGlobe = false;
-                isDragging = false;
-                globeVelocityY = 0; 
-                document.getElementById('inside-close-btn').classList.remove('visible');
-                document.getElementById('inside-hint').classList.remove('visible');
+                isPeeking = false;
+                peekDragging = false;
+                outerGlobeDragging = false;
+                peekCylVelocity = 0;
+                peekCylinder.visible = false;
+                peekMat.opacity = 0;
+                document.getElementById('peek-btn').textContent = '✦ Peek Inside';
             };
 
             scene.add(new THREE.AmbientLight(0xffffff, 1.2));
-            camera.position.z = CAM_Z_OUTSIDE;
+            camera.position.z = 22;
 
             /* ════════════ ANIMATE LOOP ════════════ */
             function animate() {
@@ -925,41 +921,35 @@
                 const delta = clock.getDelta();
                 const time = clock.elapsedTime;
 
-                /* ── Smooth inside-globe transition ── */
-                insideProgress = isInsideGlobe
-                    ? Math.min(1, insideProgress + delta * INSIDE_SPEED)
-                    : Math.max(0, insideProgress - delta * INSIDE_SPEED);
-
-                const ease = insideProgress < 0.5
-                    ? 2 * insideProgress * insideProgress
-                    : 1 - Math.pow(-2 * insideProgress + 2, 2) / 2;
-
-                camera.fov = FOV_OUTSIDE + (FOV_INSIDE - FOV_OUTSIDE) * ease;
-                camera.position.z = CAM_Z_OUTSIDE + (CAM_Z_INSIDE - CAM_Z_OUTSIDE) * ease;
-                camera.updateProjectionMatrix();
-
-                if (ease >= 0.5 && globeMat.side === THREE.FrontSide) {
-                    globeMat.side = THREE.BackSide;
-                    globeMat.needsUpdate = true;
-                } else if (ease < 0.5 && globeMat.side === THREE.BackSide) {
-                    globeMat.side = THREE.FrontSide;
-                    globeMat.needsUpdate = true;
+                /* ── Peek cylinder: fade in/out + auto-rotate + inertia ── */
+                const targetPeekOpacity = isPeeking ? 1 : 0;
+                peekMat.opacity = THREE.MathUtils.lerp(peekMat.opacity, targetPeekOpacity, delta * 4);
+                if (peekMat.opacity > 0.01) {
+                    peekCylinder.visible = true;
+                    // Auto-rotate when not dragging
+                    if (!peekDragging) {
+                        peekCylinder.rotation.y -= 0.004;
+                        if (Math.abs(peekCylVelocity) > 0.0001) {
+                            peekCylinder.rotation.y -= peekCylVelocity;
+                            peekCylVelocity *= 0.94;
+                        }
+                    }
+                } else {
+                    peekCylinder.visible = false;
                 }
 
-                if (isInsideGlobe && globeMat.opacity < 1) {
-                    globeMat.opacity = Math.min(1, globeMat.opacity + 0.04);
-                    globeTex.needsUpdate = true;
-                }
-
-                controls.enabled = !isInsideGlobe && (phase === "globe" || phase === "gallery");
-                controls.update();
-
-                if (isInsideGlobe && !isDragging) {
-                    if (Math.abs(globeVelocityY) > 0.0001) {
-                        globe.rotation.y += globeVelocityY;
-                        globeVelocityY *= 0.92;
+                // Globe fades out when peeking, back in when returning
+                if (phase === 'globe') {
+                    if (isPeeking) {
+                        globeMat.opacity = Math.max(0, globeMat.opacity - delta * 3);
+                    } else {
+                        globeMat.opacity = Math.min(1, globeMat.opacity + delta * 1.5);
                     }
                 }
+
+                controls.enabled = !isPeeking && (phase === "globe" || phase === "gallery");
+                controls.enableZoom = !isPeeking && phase === "globe";
+                controls.update();
 
                 if (controls.target) {
                     controls.target.x = THREE.MathUtils.clamp(controls.target.x, -PAN_LIMIT, PAN_LIMIT);
@@ -1016,7 +1006,7 @@
                     }
                 }
 
-                if ((phase === "globe" || phase === "transition") && !isInsideGlobe) {
+                if ((phase === "globe" || phase === "transition") && !isPeeking && !outerGlobeDragging) {
                     globe.rotation.y += 0.005;
                 }
 
@@ -1024,8 +1014,8 @@
                     const tp = THREE.MathUtils.clamp((time - transitionStartTime) / TRANSITION_DURATION, 0, 1);
                     globeMat.opacity = Math.max(0, 1 - tp * 1.2);
                     fireMat.opacity = tp * 0.8;
-                    if (tp >= 1) phase = "gallery";
-                } else if (phase === "globe" && globeMat.opacity < 1) {
+                    if (tp >= 1) { phase = "gallery"; }
+                } else if (phase === "globe" && !isPeeking && globeMat.opacity < 1) {
                     globeMat.opacity += 0.02;
                 }
 
@@ -1077,9 +1067,10 @@
                         if (p.isZoomed) {
                             p.mesh.material.opacity = THREE.MathUtils.lerp(p.mesh.material.opacity, 1, 0.1);
                             p.group.position.lerp(new THREE.Vector3(0, 0, 8), 0.1);
-                            // Avoid billboard behavior for zoomed photos to keep mosaic stable
+                            p.group.quaternion.slerp(camera.quaternion, 0.1);
                         } else {
                             p.group.position.y += p.speed;
+                            p.group.quaternion.copy(camera.quaternion);
                             const y = p.group.position.y;
                             p.mesh.material.opacity = y < -20 ? THREE.MathUtils.smoothstep(y, -35, -20)
                                 : y > 10 ? 1 - THREE.MathUtils.smoothstep(y, 10, 25) : 1;
@@ -1105,22 +1096,6 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
-            // Zoom control: only when globe is visible in the scene
-            window.addEventListener('wheel', (e) => {
-                // If globe is visible and rotating, allow zoom
-                const canZoomNow = globe.visible && globeMat && globeMat.opacity > 0.05;
-                if (!canZoomNow) return;
-                e.preventDefault();
-                const delta = e.deltaY;
-                let dist = Math.sqrt(camera.position.x * camera.position.x + camera.position.z * camera.position.z);
-                const factor = 1 + delta * 0.0015;
-                const newDist = THREE.MathUtils.clamp(dist * factor, 12, 120);
-                const ratio = newDist / (dist || 1);
-                camera.position.x *= ratio;
-                camera.position.z *= ratio;
-                camera.lookAt(0, 0, 0);
-            }, { passive: false });
-
             animate();
         }
     </script>
