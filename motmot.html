@@ -284,6 +284,12 @@
         const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
         const mouse = { x: -1000, y: -1000, r: 150, active: false };
+        let globeDragging = false;
+        let globeDragLastX = 0;
+        let globeDragLastY = 0;
+        let isPanning = false;
+        let panLastX = 0;
+        let panLastY = 0;
 
         window.addEventListener('mousemove', e => {
             mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
@@ -489,6 +495,45 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setClearColor(0x000000, 0); 
             container.appendChild(renderer.domElement);
+
+            // Enable globe dragging (left-click) and right-click pan in globe view
+            const dom3d = renderer.domElement;
+            dom3d.addEventListener('mousedown', (e) => {
+                // Left-click to rotate the globe when in globe view
+                if (e.button === 0 && phase === 'globe') {
+                    globeDragging = true; globeDragLastX = e.clientX; globeDragLastY = e.clientY; controls.enabled = false; e.preventDefault();
+                }
+                // Right-click to pan through space
+                if (e.button === 2) {
+                    isPanning = true; panLastX = e.clientX; panLastY = e.clientY; e.preventDefault();
+                }
+            });
+            dom3d.addEventListener('mouseup', (e) => {
+                if (e.button === 0) { globeDragging = false; controls.enabled = true; }
+                if (e.button === 2) { isPanning = false; }
+            });
+            dom3d.addEventListener('mousemove', (e) => {
+                if (globeDragging) {
+                    const dx = e.clientX - globeDragLastX;
+                    const dy = e.clientY - globeDragLastY;
+                    globeDragLastX = e.clientX; globeDragLastY = e.clientY;
+                    globe.rotation.y += dx * 0.005;
+                    globe.rotation.x += dy * 0.002;
+                    globe.rotation.x = THREE.MathUtils.clamp(globe.rotation.x, -0.6, 0.6);
+                } else if (isPanning) {
+                    const dx = e.clientX - panLastX;
+                    const dy = e.clientY - panLastY;
+                    panLastX = e.clientX; panLastY = e.clientY;
+                    const theta = dx * 0.005;
+                    const radius = Math.sqrt(camera.position.x*camera.position.x + camera.position.z*camera.position.z);
+                    let currentAngle = Math.atan2(camera.position.x, camera.position.z);
+                    currentAngle -= theta;
+                    camera.position.x = radius * Math.sin(currentAngle);
+                    camera.position.z = radius * Math.cos(currentAngle);
+                    camera.position.y += -dy * 0.01;
+                    camera.lookAt(0, 0, 0);
+                }
+            });
 
             // Exactly replicating the navigation settings from your reference file
             const controls = new OrbitControls(camera, renderer.domElement);
@@ -1032,10 +1077,9 @@
                         if (p.isZoomed) {
                             p.mesh.material.opacity = THREE.MathUtils.lerp(p.mesh.material.opacity, 1, 0.1);
                             p.group.position.lerp(new THREE.Vector3(0, 0, 8), 0.1);
-                            p.group.quaternion.slerp(camera.quaternion, 0.1);
+                            // Avoid billboard behavior for zoomed photos to keep mosaic stable
                         } else {
                             p.group.position.y += p.speed;
-                            p.group.quaternion.copy(camera.quaternion);
                             const y = p.group.position.y;
                             p.mesh.material.opacity = y < -20 ? THREE.MathUtils.smoothstep(y, -35, -20)
                                 : y > 10 ? 1 - THREE.MathUtils.smoothstep(y, 10, 25) : 1;
@@ -1061,6 +1105,22 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
+            // Zoom control: only when globe is visible in the scene
+            window.addEventListener('wheel', (e) => {
+                // If globe is visible and rotating, allow zoom
+                const canZoomNow = globe.visible && globeMat && globeMat.opacity > 0.05;
+                if (!canZoomNow) return;
+                e.preventDefault();
+                const delta = e.deltaY;
+                let dist = Math.sqrt(camera.position.x * camera.position.x + camera.position.z * camera.position.z);
+                const factor = 1 + delta * 0.0015;
+                const newDist = THREE.MathUtils.clamp(dist * factor, 12, 120);
+                const ratio = newDist / (dist || 1);
+                camera.position.x *= ratio;
+                camera.position.z *= ratio;
+                camera.lookAt(0, 0, 0);
+            }, { passive: false });
+
             animate();
         }
     </script>
