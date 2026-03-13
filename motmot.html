@@ -2,8 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>1st Motmottt wBebiii🤍</title>
+
+    <!-- PWA / Mobile full-screen (auto-opens nicely from QR scan) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Motmot 🤍">
+    <meta name="theme-color" content="#1a0a2e">
+
+    <!-- Open Graph — rich preview when link is shared / scanned -->
+    <meta property="og:title" content="1st Motmottt wBebiii 🤍">
+    <meta property="og:description" content="Something special, just for you 💕">
+    <meta property="og:url" content="https://apolcrust.github.io/bebii/motmot.html">
+    <meta property="og:type" content="website">
+
+    <!-- Auto-redirect mobile browsers to open immediately (no extra tap) -->
+    <meta http-equiv="x-dns-prefetch-control" content="on">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M50 85 C 20 65, 5 50, 5 35 C 5 20, 15 10, 25 10 C 35 10, 45 20, 50 30 C 55 20, 65 10, 75 10 C 85 10, 95 20, 95 35 C 95 50, 80 65, 50 85 Z' fill='%23ff1493'/></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -779,7 +795,7 @@
                 if (!isPeeking || !peekDragging) return;
                 const dx = e.clientX - peekDragLastX;
                 peekCylVelocity = dx * 0.008;
-                peekCylinder.rotation.y += peekCylVelocity; // drag spins cylinder
+                peekCylinder.rotation.y -= peekCylVelocity; // drag spins sphere (corrected direction)
                 peekDragLastX = e.clientX;
             });
 
