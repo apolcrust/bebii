@@ -135,6 +135,28 @@
             user-select: none;
             -webkit-user-select: none;
         }
+        /* ── Photo Lightbox Overlay ── */
+        #photo-overlay {
+            display: none;
+            position: fixed; inset: 0; z-index: 50;
+            background: rgba(0,0,0,0.82);
+            backdrop-filter: blur(6px);
+            align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        #photo-overlay.active { display: flex; }
+        #photo-overlay img {
+            max-width: 88vw; max-height: 88vh;
+            border-radius: 12px;
+            box-shadow: 0 0 60px rgba(255,0,136,0.55), 0 0 120px rgba(255,0,136,0.2);
+            border: 1px solid rgba(255,0,136,0.4);
+            animation: overlayIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: auto;
+        }
+        @keyframes overlayIn {
+            from { opacity:0; transform:scale(0.82); }
+            to   { opacity:1; transform:scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -167,6 +189,10 @@
     <div id="ui-layer">
         <button id="click-btn">View More</button>
         <button id="peek-btn">✦ Peek Inside</button>
+    </div>
+
+    <div id="photo-overlay">
+        <img id="overlay-img" src="" alt="" />
     </div>
 
     <script type="importmap">
@@ -903,6 +929,28 @@
                 });
             }
 
+            /* ── Photo lightbox overlay ── */
+            const photoOverlay = document.getElementById('photo-overlay');
+            const overlayImg   = document.getElementById('overlay-img');
+            let overlayOpen = false;
+
+            function openOverlay(src) {
+                overlayImg.src = src;
+                photoOverlay.classList.add('active');
+                overlayOpen = true;
+            }
+            function closeOverlay() {
+                photoOverlay.classList.remove('active');
+                overlayImg.src = '';
+                overlayOpen = false;
+                zoomedPhoto = null;
+            }
+
+            // Clicking the centered image dismisses it
+            overlayImg.addEventListener('click', (e) => { e.stopPropagation(); closeOverlay(); });
+            // Clicking the dark backdrop also dismisses
+            photoOverlay.addEventListener('click', closeOverlay);
+
             container.addEventListener('mousedown', (e) => {
                 if (isPeeking) return;
                 if (phase !== "gallery") return;
@@ -914,11 +962,23 @@
                     const hit = intersects.find(o => o.object.name === "photo_mesh");
                     if (hit) {
                         const p = photos.find(ph => ph.mesh === hit.object);
-                        if (zoomedPhoto === p) { p.isZoomed = false; zoomedPhoto = null; }
-                        else { if (zoomedPhoto) zoomedPhoto.isZoomed = false; p.isZoomed = true; zoomedPhoto = p; }
+                        if (p) {
+                            // Open overlay with this photo's texture src
+                            const src = p.mesh.material.map.image.src;
+                            openOverlay(src);
+                            zoomedPhoto = p;
+                        }
                     }
                 }
             });
+
+            /* ── Gallery scroll zoom ── */
+            let galleryCamZ = 22;
+            renderer.domElement.addEventListener('wheel', (e) => {
+                if (isPeeking || phase !== 'gallery') return;
+                e.preventDefault();
+                galleryCamZ = THREE.MathUtils.clamp(galleryCamZ + e.deltaY * 0.05, 10, 55);
+            }, { passive: false });
 
             let transitionStartTime = null;
             const TRANSITION_DURATION = 1.8;
@@ -927,6 +987,8 @@
                 phase = "transition";
                 transitionStartTime = clock.getElapsedTime();
                 lastPhotoSpawnTime = clock.getElapsedTime();
+                galleryCamZ = 22; // reset zoom for gallery
+                closeOverlay();
                 photos.forEach((p) => {
                     p.group.position.y = -35;
                     p.group.position.x = (Math.random() - 0.5) * 22;
@@ -1121,28 +1183,26 @@
                         return false;
                     }
                     photos.forEach(p => {
-                        if (p.isZoomed) {
-                            p.mesh.material.opacity = THREE.MathUtils.lerp(p.mesh.material.opacity, 1, 0.1);
-                            p.group.position.lerp(new THREE.Vector3(0, 0, 8), 0.1);
-                            p.group.quaternion.slerp(camera.quaternion, 0.1);
-                        } else {
-                            p.group.position.y += p.speed;
-                            p.group.quaternion.copy(camera.quaternion);
-                            const y = p.group.position.y;
-                            p.mesh.material.opacity = y < -20 ? THREE.MathUtils.smoothstep(y, -35, -20)
-                                : y > 10 ? 1 - THREE.MathUtils.smoothstep(y, 10, 25) : 1;
-                            if (p.group.position.y > 25 && time - lastPhotoSpawnTime >= MIN_SPAWN_INTERVAL) {
-                                let newX, attempts = 0;
-                                do { newX = (Math.random() - 0.5) * 22; attempts++; } while (checkOverlap(newX, -35, 0) && attempts < 5);
-                                if (attempts >= 5 || !checkOverlap(newX, -35, 0)) {
-                                    p.group.position.set(newX, -35, (Math.random() - 0.5) * 10);
-                                    p.mesh.material.opacity = 0;
-                                    lastPhotoSpawnTime = time;
-                                }
+                        // All photos always float — overlay handles the "zoom" view
+                        p.group.position.y += p.speed;
+                        p.group.quaternion.copy(camera.quaternion);
+                        const y = p.group.position.y;
+                        p.mesh.material.opacity = y < -20 ? THREE.MathUtils.smoothstep(y, -35, -20)
+                            : y > 10 ? 1 - THREE.MathUtils.smoothstep(y, 10, 25) : 1;
+                        if (p.group.position.y > 25 && time - lastPhotoSpawnTime >= MIN_SPAWN_INTERVAL) {
+                            let newX, attempts = 0;
+                            do { newX = (Math.random() - 0.5) * 22; attempts++; } while (checkOverlap(newX, -35, 0) && attempts < 5);
+                            if (attempts >= 5 || !checkOverlap(newX, -35, 0)) {
+                                p.group.position.set(newX, -35, (Math.random() - 0.5) * 10);
+                                p.mesh.material.opacity = 0;
+                                lastPhotoSpawnTime = time;
                             }
                         }
                         p.shadow.material.opacity = (0.7 + Math.sin(time * 3) * 0.3) * p.mesh.material.opacity;
                     });
+
+                    // Scroll zoom for gallery
+                    camera.position.z = THREE.MathUtils.lerp(camera.position.z, galleryCamZ, delta * 8);
                 }
 
                 renderer.render(scene, camera);
